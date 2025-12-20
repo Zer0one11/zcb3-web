@@ -6,69 +6,59 @@
     <style>
         :root { --accent: #00ff7f; --bg: #0d0d10; }
         body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: #16161e; border: 1px solid #2a2a35; border-radius: 16px; padding: 25px; width: 500px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
-        
-        .lang-bar { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 10px; }
-        .lang-btn { background: none; border: none; color: #555; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s; }
-        .lang-btn.active { color: var(--accent); }
-
+        .container { background: #16161e; border: 1px solid #2a2a35; border-radius: 16px; padding: 30px; width: 500px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); position: relative; }
         h1 { color: var(--accent); font-size: 20px; text-align: center; text-transform: uppercase; margin-top: 0; letter-spacing: 2px; }
         
-        .selector { display: flex; gap: 10px; margin-bottom: 15px; }
-        .sel-btn { flex: 1; padding: 10px; border: 1px solid #333; background: #000; color: #888; border-radius: 8px; cursor: pointer; font-size: 10px; transition: 0.3s; text-transform: uppercase; }
-        .sel-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.1); }
+        .bot-selector, .pack-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .bot-btn, .pack-btn { flex: 1; padding: 10px; border: 1px solid #333; background: #000; color: #888; border-radius: 8px; cursor: pointer; font-size: 11px; transition: 0.3s; text-transform: uppercase; }
+        .bot-btn.active, .pack-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.1); }
 
         .control-group { margin: 15px 0; background: #000; padding: 15px; border-radius: 8px; border: 1px solid #222; }
         label { display: block; font-size: 10px; color: #666; margin-bottom: 8px; text-transform: uppercase; }
         input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
         
-        .status-box { margin-top: 15px; padding: 12px; background: #050505; border-radius: 5px; font-family: 'Consolas', monospace; font-size: 11px; height: 90px; overflow-y: auto; color: #00ff7f; border: 1px solid #1a1a1a; }
+        .status-box { margin-top: 15px; padding: 12px; background: #050505; border-radius: 5px; font-family: 'Consolas', monospace; font-size: 11px; height: 100px; overflow-y: auto; color: #00ff7f; border: 1px solid #1a1a1a; }
         .btn { display: none; background: var(--accent); color: #000; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 10px; width: 100%; border: none; cursor: pointer; text-align: center; text-decoration: none; }
         .val { color: var(--accent); float: right; font-weight: bold; }
         
         .preview-section { margin-top: 20px; display: none; border-top: 1px solid #333; padding-top: 20px; }
         audio { width: 100%; filter: invert(100%) hue-rotate(180deg) brightness(1.5); margin-bottom: 10px; }
-        .footer { margin-top: 25px; text-align: center; font-size: 12px; }
-        .footer a { color: #444; text-decoration: none; transition: 0.3s; }
+
+        .footer { margin-top: 25px; text-align: center; font-size: 12px; color: #444; }
+        .footer a { color: #666; text-decoration: none; transition: 0.3s; }
         .footer a:hover { color: var(--accent); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="lang-bar">
-        <button class="lang-btn active" onclick="setLanguage('ru')">РУССКИЙ</button>
-        <button class="lang-btn" onclick="setLanguage('en')">ENGLISH</button>
-        <button class="lang-btn" onclick="setLanguage('es')">ESPAÑOL</button>
-    </div>
-
     <h1>zcb3 WEB</h1>
     
-    <label id="lbl-bot">ФОРМАТ МАКРОСА:</label>
-    <div class="selector">
-        <button class="sel-btn active bot-opt" onclick="setBotType('re3', this)">.re3 (GDH)</button>
-        <button class="sel-btn bot-opt" onclick="setBotType('json', this)">.json (xdBot)</button>
+    <label>ФОРМАТ МАКРОСА:</label>
+    <div class="bot-selector">
+        <button class="bot-btn active" data-type="re3">.re3 (GDH)</button>
+        <button class="bot-btn" data-type="json">.json (xdBot)</button>
     </div>
 
-    <label id="lbl-pack">ВЫБОР КЛИК-ПАКА:</label>
-    <div class="selector">
-        <button class="sel-btn active pack-opt" onclick="setPack('g502', this)">G502</button>
-        <button class="sel-btn pack-opt" onclick="setPack('viper', this)">Viper-8K</button>
+    <label>ВЫБОР КЛИК-ПАКА:</label>
+    <div class="pack-selector">
+        <button class="pack-btn active" data-pack="g502">Logitech G502</button>
+        <button class="pack-btn" data-pack="viper">Viper-8K</button>
     </div>
 
-    <div style="border: 2px dashed #3a3a45; padding: 25px; text-align: center; cursor: pointer; border-radius: 10px;" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        <b id="drop-text">ВЫБРАТЬ ФАЙЛ МАКРОСА</b>
+    <div style="border: 2px dashed #3a3a45; padding: 30px; text-align: center; cursor: pointer; border-radius: 10px;" id="dropZone">
+        ВЫБРАТЬ ФАЙЛ МАКРОСА
     </div>
-    <input type="file" id="fileInput" style="display: none;" onchange="handleFile(this.files[0])">
+    <input type="file" id="fileInput" style="display: none;">
 
     <div class="control-group">
-        <label id="lbl-offset">ОТСЕЧКА (OFFSET): <span class="val" id="offVal">-140 ms</span></label>
-        <input type="range" id="offsetRange" min="-500" max="500" value="-140" oninput="updateOffset(this.value)">
+        <label>ОТСЕЧКА (OFFSET): <span class="val" id="offVal">-140 ms</span></label>
+        <input type="range" id="offsetRange" min="-500" max="500" value="-140">
     </div>
 
-    <div class="status-box" id="log">...</div>
+    <div class="status-box" id="log">Загрузка аудио...</div>
 
-    <button id="renderBtn" class="btn" onclick="renderAudio()">ОБРАБОТАТЬ</button>
+    <button id="renderBtn" class="btn">ОБРАБОТАТЬ</button>
 
     <div class="preview-section" id="previewSection">
         <audio id="audioPlayer" controls></audio>
@@ -81,109 +71,139 @@
 </div>
 
 <script>
-    const translations = {
-        ru: { bot: "ФОРМАТ МАКРОСА:", pack: "ВЫБОР КЛИК-ПАКА:", drop: "ВЫБРАТЬ ФАЙЛ МАКРОСА", offset: "ОТСЕЧКА (OFFSET):", render: "ОБРАБОТАТЬ", download: "СКАЧАТЬ WAV", logReady: "Система готова.", logLoad: "Загрузка пака...", logOk: "Пак загружен!", logErr: "Ошибка загрузки звуков." },
-        en: { bot: "MACRO FORMAT:", pack: "CLICK PACK:", drop: "CHOOSE MACRO FILE", offset: "OFFSET:", render: "RENDER", download: "DOWNLOAD WAV", logReady: "System ready.", logLoad: "Loading pack...", logOk: "Pack loaded!", logErr: "Audio load error." },
-        es: { bot: "FORMATO DE MACRO:", pack: "PACK DE CLICKS:", drop: "ELEGIR ARCHIVO MACRO", offset: "OFFSET:", render: "PROCESAR", download: "DESCARGAR WAV", logReady: "Sistema listo.", logLoad: "Cargando pack...", logOk: "¡Pack cargado!", logErr: "Error de audio." }
-    };
-
-    let currentLang = 'ru';
     let botType = 're3';
     let clickPack = 'g502';
     let macroEvents = [];
     let currentTps = 240;
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let audioCache = { clicks: [], releases: [] };
+    const logBox = document.getElementById('log');
+    const audioCtx = new AudioContext();
+    const audioCache = { clicks: [], releases: [] };
     let currentAudioUrl = null;
 
+    // Выбор бота
+    document.querySelectorAll('.bot-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            botType = e.target.dataset.type;
+            document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            addLog(`Формат: ${botType.toUpperCase()}`);
+        };
+    });
+
+    // Выбор пака
+    document.querySelectorAll('.pack-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            clickPack = e.target.dataset.pack;
+            document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            loadSounds();
+        };
+    });
+
     function addLog(text) {
-        const lb = document.getElementById('log');
-        lb.innerText += `\n> ${text}`;
-        lb.scrollTop = lb.scrollHeight;
-    }
-
-    function setLanguage(lang) {
-        currentLang = lang;
-        document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase().includes(lang === 'ru' ? 'рус' : lang === 'en' ? 'eng' : 'esp')));
-        document.getElementById('lbl-bot').innerText = translations[lang].bot;
-        document.getElementById('lbl-pack').innerText = translations[lang].pack;
-        document.getElementById('drop-text').innerText = translations[lang].drop;
-        document.getElementById('lbl-offset').firstChild.textContent = translations[lang].offset;
-        document.getElementById('renderBtn').innerText = translations[lang].render;
-        document.getElementById('downloadBtn').innerText = translations[lang].download;
-        addLog(translations[lang].logReady);
-    }
-
-    function setBotType(type, el) {
-        botType = type;
-        document.querySelectorAll('.bot-opt').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-    }
-
-    function setPack(pack, el) {
-        clickPack = pack;
-        document.querySelectorAll('.pack-opt').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        loadSounds();
-    }
-
-    function updateOffset(val) {
-        document.getElementById('offVal').innerText = val + " ms";
+        logBox.innerText += `\n> ${text}`;
+        logBox.scrollTop = logBox.scrollHeight;
     }
 
     async function loadSounds() {
-        addLog(translations[currentLang].logLoad + " " + clickPack.toUpperCase());
-        audioCache = { clicks: [], releases: [] };
-        let path = clickPack === 'g502' ? 'clicks/g502/' : 'clicks/Viper-8K/';
-        let cPre = clickPack === 'g502' ? 'alex.alexg502_Clicks_Useful_' : 'yen.viper-8k_Clicks_Useful_';
-        let rPre = clickPack === 'g502' ? 'alex.alexg502_Release_Useful_' : 'yen.viper-8k_Release_Useful_';
+        addLog(`Загрузка пака ${clickPack}...`);
+        audioCache.clicks = [];
+        audioCache.releases = [];
+        
+        let path = '';
+        let cPrefix = '';
+        let rPrefix = '';
+
+        if (clickPack === 'g502') {
+            path = 'clicks/g502/';
+            cPrefix = 'alex.alexg502_Clicks_Useful_';
+            rPrefix = 'alex.alexg502_Release_Useful_';
+        } else {
+            path = 'clicks/Viper-8K/';
+            cPrefix = 'yen.viper-8k_Clicks_Useful_';
+            rPrefix = 'yen.viper-8k_Release_Useful_';
+        }
 
         try {
+            // Загрузка кликов (1-10)
             for(let i=1; i<=10; i++) {
-                const [c, r] = await Promise.all([fetch(`${path}${cPre}${i}.ogg`), fetch(`${path}${rPre}${i}.ogg`)]);
-                if(c.ok) audioCache.clicks.push(await audioCtx.decodeAudioData(await c.arrayBuffer()));
-                if(r.ok) audioCache.releases.push(await audioCtx.decodeAudioData(await r.arrayBuffer()));
+                const cRes = await fetch(`${path}${cPrefix}${i}.ogg`);
+                if(cRes.ok) audioCache.clicks.push(await audioCtx.decodeAudioData(await cRes.arrayBuffer()));
             }
-            addLog(translations[currentLang].logOk);
-        } catch(e) { addLog(translations[currentLang].logErr); }
+            // Загрузка релизов (1-10)
+            for(let i=1; i<=10; i++) {
+                const rRes = await fetch(`${path}${rPrefix}${i}.ogg`);
+                if(rRes.ok) audioCache.releases.push(await audioCtx.decodeAudioData(await rRes.arrayBuffer()));
+            }
+            addLog(`Пак загружен (${audioCache.clicks.length} кликов, ${audioCache.releases.length} релизов)`);
+        } catch(e) { addLog("Ошибка загрузки аудио-файлов!"); }
     }
+    loadSounds();
+
+    offsetRange.oninput = () => document.getElementById('offVal').innerText = offsetRange.value + " ms";
+    document.getElementById('dropZone').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('fileInput').onchange = (e) => handleFile(e.target.files[0]);
 
     async function handleFile(file) {
         if(!file) return;
         const buffer = await file.arrayBuffer();
         macroEvents = [];
+        addLog(`Парсинг: ${file.name}`);
+
         try {
-            if (botType === 're3') {
-                const v = new DataView(buffer);
-                currentTps = v.getFloat32(0, true);
-                let off = 20 + (v.getUint32(4, true) + v.getUint32(8, true)) * 32;
-                for(let i=0; i < v.getUint32(12, true); i++) {
-                    macroEvents.push({ frame: v.getUint32(off, true), type: v.getUint8(off+4)!==0 });
-                    off += 16;
-                }
-            } else {
-                const data = JSON.parse(new TextDecoder().decode(buffer));
-                currentTps = data.framerate || 240;
-                (data.inputs || data.events || []).forEach(i => macroEvents.push({ frame: i.frame??i.f, type: i.down??i.d }));
+            if (botType === 're3') parseRE3(buffer);
+            else if (botType === 'json') parseJSON(new TextDecoder().decode(buffer));
+            
+            if(macroEvents.length > 0) {
+                addLog(`Готово! Действий: ${macroEvents.length}`);
+                document.getElementById('renderBtn').style.display = 'block';
             }
-            addLog("Success! File: " + file.name);
-            document.getElementById('renderBtn').style.display = 'block';
-        } catch(e) { addLog("Error parsing file."); }
+        } catch(e) { addLog("Ошибка файла!"); }
     }
 
-    async function renderAudio() {
-        const off = parseInt(document.getElementById('offsetRange').value) / 1000;
-        const dur = (macroEvents[macroEvents.length-1].frame / currentTps) + 1.5;
-        const offCtx = new OfflineAudioContext(1, 44100 * dur, 44100);
+    function parseRE3(buffer) {
+        const view = new DataView(buffer);
+        let off = 0;
+        currentTps = view.getFloat32(off, true); off += 4;
+        const p1_phys = view.getUint32(off, true); off += 4;
+        const p2_phys = view.getUint32(off, true); off += 4;
+        const p1_inp = view.getUint32(off, true); off += 4;
+        const p2_inp = view.getUint32(off, true); off += 4;
+        off += (p1_phys + p2_phys) * 32;
+        for(let i=0; i<p1_inp; i++) {
+            macroEvents.push({ frame: view.getUint32(off, true), type: view.getUint8(off+4)!==0 });
+            off += 16;
+        }
+    }
+
+    function parseJSON(text) {
+        const data = JSON.parse(text);
+        currentTps = data.framerate || 240;
+        const inputs = data.inputs || data.events || [];
+        inputs.forEach(i => {
+            const f = i.frame ?? i.f;
+            const d = i.down ?? i.d;
+            if(f !== undefined) macroEvents.push({ frame: f, type: d });
+        });
+    }
+
+    document.getElementById('renderBtn').onclick = async () => {
+        const userOff = parseInt(document.getElementById('offsetRange').value) / 1000;
+        const sampleRate = 44100;
+        const duration = (macroEvents[macroEvents.length-1].frame / currentTps) + 2;
+        const offCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * duration), sampleRate);
 
         macroEvents.forEach(ev => {
-            const time = (ev.frame / currentTps) + off;
+            const time = (ev.frame / currentTps) + userOff;
             if(time < 0) return;
             const s = offCtx.createBufferSource();
+            
+            // Рандомный звук из выбранного пака
             const pool = ev.type ? audioCache.clicks : audioCache.releases;
             s.buffer = pool[Math.floor(Math.random() * pool.length)];
+            
             const g = offCtx.createGain();
-            g.gain.value = 0.7 + Math.random()*0.3;
+            g.gain.value = 0.7 + Math.random()*0.4;
             s.connect(g); g.connect(offCtx.destination);
             s.start(time);
         });
@@ -193,25 +213,23 @@
         currentAudioUrl = URL.createObjectURL(new Blob([bufferToWav(res)], {type:'audio/wav'}));
         document.getElementById('audioPlayer').src = currentAudioUrl;
         document.getElementById('downloadBtn').href = currentAudioUrl;
-        document.getElementById('downloadBtn').download = "render.wav";
+        document.getElementById('downloadBtn').download = "zcb3_render.wav";
         document.getElementById('previewSection').style.display = 'block';
-        addLog("Done!");
-    }
-
-    function bufferToWav(ab) {
-        let n=ab.numberOfChannels, len=ab.length*n*2+44, b=new ArrayBuffer(len), v=new DataView(b), p=0;
-        const u32=d=>{v.setUint32(p,d,true);p+=4}, u16=d=>{v.setUint16(p,d,true);p+=2};
-        u32(0x46464952); u32(len-8); u32(0x45564157); u32(0x20746d66); u32(16); u16(1); u16(n);
-        u32(ab.sampleRate); u32(ab.sampleRate*2*n); u16(n*2); u16(16); u32(0x61746164); u32(len-p-4);
-        let d=ab.getChannelData(0); for(let i=0;i<d.length;i++){ let s=Math.max(-1,Math.min(1,d[i])); v.setInt16(p,s<0?s*32768:s*32767,true); p+=2 }
-        return b;
-    }
-
-    // Запуск
-    window.onload = () => {
-        setLanguage('ru');
-        loadSounds();
+        addLog("Рендеринг завершен!");
     };
+
+    function bufferToWav(abuffer) {
+        let n = abuffer.numberOfChannels, len = abuffer.length*n*2+44, buf = new ArrayBuffer(len), v = new DataView(buf), off = 0, p = 0;
+        const u32 = (d) => { v.setUint32(p, d, true); p += 4; }, u16 = (d) => { v.setUint16(p, d, true); p += 2; };
+        u32(0x46464952); u32(len-8); u32(0x45564157); u32(0x20746d66); u32(16); u16(1); u16(n);
+        u32(abuffer.sampleRate); u32(abuffer.sampleRate*2*n); u16(n*2); u16(16); u32(0x61746164); u32(len-p-4);
+        const data = abuffer.getChannelData(0);
+        while(p < len) {
+            let s = Math.max(-1, Math.min(1, data[off++]));
+            v.setInt16(p, s < 0 ? s*0x8000 : s*0x7FFF, true); p += 2;
+        }
+        return buf;
+    }
 </script>
 </body>
 </html>
