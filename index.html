@@ -2,32 +2,27 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ZCB3 ULTIMATE RENDERER</title>
+    <title>ZCB3 - Final Fixed Renderer</title>
     <style>
-        :root { --accent: #00ff7f; --bg: #0d0d10; --card: #16161e; }
+        :root { --accent: #00ff7f; --bg: #0d0d10; }
         body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: var(--card); border: 1px solid #2a2a35; border-radius: 16px; padding: 30px; width: 480px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-        h1 { color: var(--accent); font-size: 20px; text-align: center; margin: 0 0 20px 0; letter-spacing: 2px; }
-        .drop-zone { border: 2px dashed #3a3a45; padding: 40px; border-radius: 12px; text-align: center; cursor: pointer; background: rgba(255,255,255,0.02); transition: 0.3s; }
-        .drop-zone:hover { border-color: var(--accent); }
-        .status-box { margin-top: 20px; padding: 15px; background: #000; border-radius: 8px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; border: 1px solid #222; }
-        .btn { display: none; background: var(--accent); color: #000; padding: 15px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px; width: 100%; border: none; cursor: pointer; text-align: center; }
-        .log-entry { margin-bottom: 4px; border-left: 2px solid var(--accent); padding-left: 8px; }
-        .err { border-left-color: #ff4747; color: #ff4747; }
+        .container { background: #16161e; border: 1px solid #2a2a35; border-radius: 16px; padding: 30px; width: 480px; }
+        h1 { color: var(--accent); font-size: 20px; text-align: center; margin-bottom: 20px; }
+        .drop-zone { border: 2px dashed #3a3a45; padding: 40px; border-radius: 12px; text-align: center; cursor: pointer; background: rgba(255,255,255,0.02); }
+        .status-box { margin-top: 20px; padding: 15px; background: #000; border-radius: 8px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; border: 1px solid #222; white-space: pre-wrap; }
+        .btn { display: none; background: var(--accent); color: #000; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 15px; width: 100%; border: none; cursor: pointer; text-align: center; text-decoration: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>ZCB3 G502 RENDERER</h1>
+    <h1>ZCB3 G502 RENDERER v2.1</h1>
     <div class="drop-zone" id="dropZone">Перетащите макрос .re3 сюда</div>
     <input type="file" id="fileInput" style="display: none;" accept=".re3">
     
-    <div class="status-box" id="log">
-        <div class="log-entry">Система готова. Ожидание файла...</div>
-    </div>
+    <div class="status-box" id="log">Ожидание файла...</div>
 
-    <button id="renderBtn" class="btn">ЗАПУСТИТЬ МГНОВЕННЫЙ РЕНДЕР</button>
+    <button id="renderBtn" class="btn">СГЕНЕРИРОВАТЬ АУДИО</button>
     <a id="downloadBtn" class="btn" style="background: #fff;">СКАЧАТЬ .WAV</a>
 </div>
 
@@ -38,49 +33,40 @@
     
     let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let audioCache = { clicks: [], release: null };
-    let macroData = { events: [], tps: 240 };
+    let macroEvents = [];
 
-    function addLog(text, isError = false) {
-        const div = document.createElement('div');
-        div.className = 'log-entry' + (isError ? ' err' : '');
-        div.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
-        logBox.appendChild(div);
+    function addLog(text) {
+        logBox.innerText += `\n[${new Date().toLocaleTimeString()}] ${text}`;
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    // Мгновенная загрузка звуков (параллельно)
+    // Предзагрузка звуков
     async function preload() {
         const path = 'clicks/g502/';
-        const clickBase = 'alex.alexg502_Clicks_Useful_';
-        
-        // Загружаем отжатие сразу
-        fetch(`${path}alex.alexg502_Release_Useful_1.ogg`)
-            .then(r => r.arrayBuffer())
-            .then(buf => audioCtx.decodeAudioData(buf))
-            .then(decoded => { audioCache.release = decoded; addLog("Звук отжатия загружен"); })
-            .catch(() => addLog("Ошибка: Не найден файл отжатия", true));
+        try {
+            // Загружаем релиз
+            const rRes = await fetch(`${path}alex.alexg502_Release_Useful_1.ogg`);
+            const rBuf = await rRes.arrayBuffer();
+            audioCache.release = await audioCtx.decodeAudioData(rBuf);
+            addLog("Звук отжатия готов");
 
-        // Загружаем первые 5 кликов для старта, остальные догрузятся в фоне
-        for(let i=1; i<=30; i++) {
-            fetch(`${path}${clickBase}${i}.ogg`)
-                .then(r => r.arrayBuffer())
-                .then(buf => audioCtx.decodeAudioData(buf))
-                .then(decoded => { 
-                    audioCache.clicks.push(decoded);
-                    if(audioCache.clicks.length === 1) addLog("Первые клики готовы к работе");
-                });
-        }
+            // Загружаем клики (первые 10 для скорости)
+            for(let i=1; i<=10; i++) {
+                const cRes = await fetch(`${path}alex.alexg502_Clicks_Useful_${i}.ogg`);
+                const cBuf = await cRes.arrayBuffer();
+                const decoded = await audioCtx.decodeAudioData(cBuf);
+                audioCache.clicks.push(decoded);
+            }
+            addLog(`Загружено ${audioCache.clicks.length} звуков кликов`);
+        } catch(e) { addLog("Ошибка загрузки звуков! Проверьте папку clicks/g502/"); }
     }
-
     preload();
 
     document.getElementById('dropZone').onclick = () => document.getElementById('fileInput').click();
-    document.getElementById('fileInput').onchange = (e) => handleFile(e.target.files[0]);
+    fileInput.onchange = (e) => handleFile(e.target.files[0]);
 
     async function handleFile(file) {
         if(!file) return;
-        addLog(`Файл выбран: ${file.name}`);
-        
         const buffer = await file.arrayBuffer();
         const view = new DataView(buffer);
         let offset = 0;
@@ -92,73 +78,70 @@
             const p1_input = view.getUint32(offset, true); offset += 4;
             const p2_input = view.getUint32(offset, true); offset += 4;
 
-            addLog(`TPS: ${tps.toFixed(0)}, Кликов: ${p1_input}`);
-
-            // ВАЖНО: В re3.cpp replay_data имеет размер 32 байта (с учетом padding)
-            // frame(4) + x(4) + y(4) + rot(4) + y_accel(8) + player(1) + padding(7) = 32
+            // Пропускаем физику. replay_data в C++ обычно 32 байта
             offset += (p1_phys + p2_phys) * 32;
 
-            macroData.events = [];
+            macroEvents = [];
+            addLog(`Парсинг: TPS=${tps}, Инпутов=${p1_input}`);
+
             for(let i=0; i < p1_input; i++) {
+                // Читаем replay_data2: frame(4), down(1), button(4), player(1)
+                // Важно: в C++ из-за выравнивания размер этой структуры 12 байт
                 const frame = view.getUint32(offset, true);
                 const isDown = view.getUint8(offset + 4) !== 0;
-                macroData.events.push({ time: frame / tps, type: isDown });
-                offset += 12; // replay_data2 размер
+                
+                const timeInSeconds = frame / tps;
+                macroEvents.push({ time: timeInSeconds, type: isDown });
+                
+                offset += 12; 
             }
 
-            if(macroData.events.length > 0) {
+            // Дамп первых кликов для проверки
+            if(macroEvents.length > 0) {
+                let debug = "Первые тайминги:";
+                for(let i=0; i<Math.min(5, macroEvents.length); i++) {
+                    debug += `\n#${i}: ${macroEvents[i].time.toFixed(3)}s [${macroEvents[i].type ? 'DN' : 'UP'}]`;
+                }
+                addLog(debug);
                 renderBtn.style.display = 'block';
-                addLog("Макрос считан. Нажмите кнопку рендера.");
-            } else {
-                addLog("Ошибка: В файле нет данных о кликах", true);
             }
-        } catch(e) {
-            addLog("Критическая ошибка парсинга файла", true);
-        }
+        } catch(e) { addLog("Ошибка парсинга файла!"); }
     }
 
     renderBtn.onclick = async () => {
-        if(audioCache.clicks.length === 0) {
-            addLog("Ошибка: Звуки еще не загружены. Подождите пару секунд...", true);
-            return;
-        }
-
         renderBtn.style.display = 'none';
-        addLog("Начинаю рендеринг в память...");
-        
-        const sampleRate = 44100;
-        const duration = macroData.events[macroData.events.length-1].time + 1.5;
-        
-        // Создаем оффлайн контекст
-        const offCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * duration), sampleRate);
+        addLog("Начинаю рендер...");
 
-        macroData.events.forEach(ev => {
+        const sampleRate = 44100;
+        // Длина файла = время последнего события + 1 секунда
+        const totalDuration = macroEvents[macroEvents.length - 1].time + 1;
+        const offCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * totalDuration), sampleRate);
+
+        macroEvents.forEach(ev => {
             const source = offCtx.createBufferSource();
-            if(ev.type) {
-                source.buffer = audioCache.clicks[Math.floor(Math.random() * audioCache.clicks.length)];
-            } else {
-                source.buffer = audioCache.release || audioCache.clicks[0];
-            }
+            source.buffer = ev.type ? 
+                audioCache.clicks[Math.floor(Math.random() * audioCache.clicks.length)] : 
+                audioCache.release;
+
+            // Рандомизация pitch
+            source.playbackRate.value = 0.98 + Math.random() * 0.04;
 
             const gain = offCtx.createGain();
-            gain.gain.value = 0.8 + Math.random() * 0.4;
-            
+            gain.gain.value = 0.8 + Math.random() * 0.3;
+
             source.connect(gain);
             gain.connect(offCtx.destination);
+
+            // КРИТИЧЕСКАЯ ТОЧКА: Планируем звук на конкретное время
             source.start(ev.time);
         });
 
-        const startTimestamp = performance.now();
         const renderedBuffer = await offCtx.startRendering();
-        const endTimestamp = performance.now();
-
-        addLog(`Рендер завершен за ${((endTimestamp - startTimestamp)/1000).toFixed(2)} сек!`);
+        addLog("Рендер завершен успешно!");
 
         const wav = bufferToWav(renderedBuffer);
-        const url = URL.createObjectURL(new Blob([wav], {type:'audio/wav'}));
-        
-        downloadBtn.href = url;
-        downloadBtn.download = `render_${Date.now()}.wav`;
+        downloadBtn.href = URL.createObjectURL(new Blob([wav], {type:'audio/wav'}));
+        downloadBtn.download = "macro_render.wav";
         downloadBtn.style.display = 'block';
     };
 
