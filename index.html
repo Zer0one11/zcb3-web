@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ZCB3 - Universal Bot Renderer</title>
+    <title>ZCB3 - Ultimate Bot Renderer</title>
     <script src="https://unpkg.com/@msgpack/msgpack@2.8.0/dist/msgpack.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0d0d10; }
@@ -39,16 +39,16 @@
     </div>
 
     <div style="border: 2px dashed #3a3a45; padding: 30px; text-align: center; cursor: pointer; border-radius: 10px;" id="dropZone">
-        КЛИКНИТЕ ИЛИ ПЕРЕТАЩИТЕ ФАЙЛ
+        ВЫБРАТЬ ФАЙЛ
     </div>
     <input type="file" id="fileInput" style="display: none;">
 
     <div class="control-group">
-        <label>ОТСЕЧКА (OFFSET): <span class="val" id="offVal">-140 ms</span></label>
+        <label>ОТСТУП (OFFSET): <span class="val" id="offVal">-140 ms</span></label>
         <input type="range" id="offsetRange" min="-500" max="500" value="-140">
     </div>
 
-    <div class="status-box" id="log">Загрузка системы...</div>
+    <div class="status-box" id="log">Загрузка библиотек...</div>
 
     <button id="renderBtn" class="btn">ОБРАБОТАТЬ</button>
 
@@ -67,7 +67,11 @@
     const audioCache = { clicks: [], release: null };
     let currentAudioUrl = null;
 
-    // Инициализация кнопок выбора бота
+    // Универсальный доступ к MsgPack
+    function getMsgPack() {
+        return window.msgpack || window.MessagePack || (window.MessagePackBrowser && window.MessagePackBrowser.decode ? window.MessagePackBrowser : null);
+    }
+
     document.querySelectorAll('.bot-btn').forEach(btn => {
         btn.onclick = (e) => {
             botType = e.target.dataset.type;
@@ -91,10 +95,12 @@
                 const cRes = await fetch(`${path}alex.alexg502_Clicks_Useful_${i}.ogg`);
                 if(cRes.ok) audioCache.clicks.push(await audioCtx.decodeAudioData(await cRes.arrayBuffer()));
             }
-            addLog("Библиотека G502 готова. Ожидание файла...");
-        } catch(e) { addLog("Ошибка загрузки звуков!"); }
+            addLog("Звуки загружены. Система готова.");
+        } catch(e) { addLog("Ошибка звуков. Проверьте путь /clicks/g502/"); }
     }
     preload();
+
+    offsetRange.oninput = () => document.getElementById('offVal').innerText = offsetRange.value + " ms";
 
     document.getElementById('dropZone').onclick = () => document.getElementById('fileInput').click();
     document.getElementById('fileInput').onchange = (e) => handleFile(e.target.files[0]);
@@ -103,26 +109,19 @@
         if(!file) return;
         const buffer = await file.arrayBuffer();
         macroEvents = [];
-        addLog(`Парсинг ${file.name}...`);
+        addLog(`Файл: ${file.name}`);
 
         try {
-            if (botType === 're3') {
-                parseRE3(buffer);
-            } else if (botType === 'json') {
-                parseJSON(new TextDecoder().decode(buffer));
-            } else if (botType === 'gdr') {
-                parseGDR(buffer);
-            }
+            if (botType === 're3') parseRE3(buffer);
+            else if (botType === 'json') parseJSON(new TextDecoder().decode(buffer));
+            else if (botType === 'gdr') parseGDR(buffer);
             
             if(macroEvents.length > 0) {
-                addLog(`Успешно! Инпутов: ${macroEvents.length}, TPS: ${currentTps}`);
+                addLog(`Успех! Кликов: ${macroEvents.length}`);
                 document.getElementById('renderBtn').style.display = 'block';
-            } else {
-                addLog("В файле не найдено событий кликов.");
             }
         } catch(e) {
-            addLog("ОШИБКА ПАРСИНГА: " + e.message);
-            console.error(e);
+            addLog("ОШИБКА: " + e.message);
         }
     }
 
@@ -146,7 +145,6 @@
         currentTps = data.framerate || 240;
         const inputs = data.inputs || data.events || [];
         inputs.forEach(i => {
-            // Поддержка разных имен полей в JSON
             const f = i.frame !== undefined ? i.frame : i.f;
             const d = i.down !== undefined ? i.down : i.d;
             if(f !== undefined) macroEvents.push({ frame: f, type: d });
@@ -154,11 +152,10 @@
     }
 
     function parseGDR(buffer) {
-        // xdBot .gdr использует MsgPack. В библиотеке unpkg объект называется msgpack
-        if (typeof msgpack === 'undefined') {
-            throw new Error("Библиотека MsgPack не загружена. Проверьте интернет.");
-        }
-        const data = msgpack.decode(new Uint8Array(buffer));
+        const mp = getMsgPack();
+        if (!mp) throw new Error("MsgPack не загружен. Подождите 3 сек и попробуйте снова.");
+        
+        const data = mp.decode(new Uint8Array(buffer));
         currentTps = data.framerate || 240;
         const inputs = data.inputs || [];
         inputs.forEach(i => {
@@ -188,9 +185,9 @@
         currentAudioUrl = URL.createObjectURL(new Blob([bufferToWav(res)], {type:'audio/wav'}));
         document.getElementById('audioPlayer').src = currentAudioUrl;
         document.getElementById('downloadBtn').href = currentAudioUrl;
-        document.getElementById('downloadBtn').download = "zcb3_render.wav";
+        document.getElementById('downloadBtn').download = "render.wav";
         document.getElementById('previewSection').style.display = 'block';
-        addLog("Рендеринг завершен. Слушайте.");
+        addLog("Рендер готов!");
     };
 
     function bufferToWav(abuffer) {
