@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>ZCB3 - Universal Bot Renderer</title>
-    <script src="https://cdn.jsdelivr.net/npm/@msgpack/msgpack@2.8.0/dist/msgpack.min.js"></script>
+    <script src="https://unpkg.com/@msgpack/msgpack@2.8.0/dist/msgpack.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0d0d10; }
         body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
@@ -11,11 +11,11 @@
         h1 { color: var(--accent); font-size: 20px; text-align: center; text-transform: uppercase; margin-top: 0; }
         
         .bot-selector { display: flex; gap: 10px; margin-bottom: 20px; }
-        .bot-btn { flex: 1; padding: 10px; border: 1px solid #333; background: #000; color: #888; border-radius: 8px; cursor: pointer; font-size: 12px; transition: 0.3s; }
-        .bot-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); }
+        .bot-btn { flex: 1; padding: 10px; border: 1px solid #333; background: #000; color: #888; border-radius: 8px; cursor: pointer; font-size: 11px; transition: 0.3s; text-transform: uppercase; }
+        .bot-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.1); }
 
         .control-group { margin: 15px 0; background: #000; padding: 15px; border-radius: 8px; border: 1px solid #222; }
-        label { display: block; font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; }
+        label { display: block; font-size: 11px; color: #888; margin-bottom: 8px; }
         input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
         
         .status-box { margin-top: 15px; padding: 12px; background: #050505; border-radius: 5px; font-family: 'Consolas', monospace; font-size: 11px; height: 100px; overflow-y: auto; color: #00ff7f; border: 1px solid #1a1a1a; }
@@ -31,26 +31,26 @@
 <div class="container">
     <h1>ZCB3 UNIVERSAL</h1>
     
-    <label>Выберите формат макроса:</label>
+    <label>ФОРМАТ МАКРОСА:</label>
     <div class="bot-selector">
-        <button class="bot-btn active" onclick="setBot('re3')">RE3 (Rabbot)</button>
-        <button class="bot-btn" onclick="setBot('gdr')">GDR (xdBot)</button>
-        <button class="bot-btn" onclick="setBot('json')">JSON (xdBot)</button>
+        <button class="bot-btn active" data-type="re3">RE3 (Rabbot)</button>
+        <button class="bot-btn" data-type="gdr">GDR (xdBot)</button>
+        <button class="bot-btn" data-type="json">JSON (xdBot)</button>
     </div>
 
     <div style="border: 2px dashed #3a3a45; padding: 30px; text-align: center; cursor: pointer; border-radius: 10px;" id="dropZone">
-        Выбрать файл макроса
+        КЛИКНИТЕ ИЛИ ПЕРЕТАЩИТЕ ФАЙЛ
     </div>
     <input type="file" id="fileInput" style="display: none;">
 
     <div class="control-group">
-        <label>OFFSET (Смещение): <span class="val" id="offVal">-140 ms</span></label>
+        <label>ОТСЕЧКА (OFFSET): <span class="val" id="offVal">-140 ms</span></label>
         <input type="range" id="offsetRange" min="-500" max="500" value="-140">
     </div>
 
-    <div class="status-box" id="log">Загрузка аудио...</div>
+    <div class="status-box" id="log">Загрузка системы...</div>
 
-    <button id="renderBtn" class="btn">ОБРАБОТАТЬ И ПОСЛУШАТЬ</button>
+    <button id="renderBtn" class="btn">ОБРАБОТАТЬ</button>
 
     <div class="preview-section" id="previewSection">
         <audio id="audioPlayer" controls></audio>
@@ -67,19 +67,21 @@
     const audioCache = { clicks: [], release: null };
     let currentAudioUrl = null;
 
-    function setBot(type) {
-        botType = type;
-        document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
-        addLog(`Переключено на формат: ${type.toUpperCase()}`);
-    }
+    // Инициализация кнопок выбора бота
+    document.querySelectorAll('.bot-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            botType = e.target.dataset.type;
+            document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            addLog(`Режим: ${botType.toUpperCase()}`);
+        };
+    });
 
     function addLog(text) {
         logBox.innerText += `\n> ${text}`;
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    // Загрузка звуков
     async function preload() {
         const path = 'clicks/g502/';
         try {
@@ -89,8 +91,8 @@
                 const cRes = await fetch(`${path}alex.alexg502_Clicks_Useful_${i}.ogg`);
                 if(cRes.ok) audioCache.clicks.push(await audioCtx.decodeAudioData(await cRes.arrayBuffer()));
             }
-            addLog("Библиотека G502 готова.");
-        } catch(e) { addLog("Ошибка звуков!"); }
+            addLog("Библиотека G502 готова. Ожидание файла...");
+        } catch(e) { addLog("Ошибка загрузки звуков!"); }
     }
     preload();
 
@@ -101,6 +103,7 @@
         if(!file) return;
         const buffer = await file.arrayBuffer();
         macroEvents = [];
+        addLog(`Парсинг ${file.name}...`);
 
         try {
             if (botType === 're3') {
@@ -112,11 +115,14 @@
             }
             
             if(macroEvents.length > 0) {
-                addLog(`Успех! Инпутов: ${macroEvents.length}, TPS: ${currentTps}`);
+                addLog(`Успешно! Инпутов: ${macroEvents.length}, TPS: ${currentTps}`);
                 document.getElementById('renderBtn').style.display = 'block';
+            } else {
+                addLog("В файле не найдено событий кликов.");
             }
         } catch(e) {
-            addLog("Ошибка парсинга файла: " + e.message);
+            addLog("ОШИБКА ПАРСИНГА: " + e.message);
+            console.error(e);
         }
     }
 
@@ -140,13 +146,19 @@
         currentTps = data.framerate || 240;
         const inputs = data.inputs || data.events || [];
         inputs.forEach(i => {
-            macroEvents.push({ frame: i.frame, type: i.down });
+            // Поддержка разных имен полей в JSON
+            const f = i.frame !== undefined ? i.frame : i.f;
+            const d = i.down !== undefined ? i.down : i.d;
+            if(f !== undefined) macroEvents.push({ frame: f, type: d });
         });
     }
 
     function parseGDR(buffer) {
-        // Используем MessagePack для дешифровки .gdr
-        const data = MessagePack.decode(new Uint8Array(buffer));
+        // xdBot .gdr использует MsgPack. В библиотеке unpkg объект называется msgpack
+        if (typeof msgpack === 'undefined') {
+            throw new Error("Библиотека MsgPack не загружена. Проверьте интернет.");
+        }
+        const data = msgpack.decode(new Uint8Array(buffer));
         currentTps = data.framerate || 240;
         const inputs = data.inputs || [];
         inputs.forEach(i => {
@@ -176,9 +188,9 @@
         currentAudioUrl = URL.createObjectURL(new Blob([bufferToWav(res)], {type:'audio/wav'}));
         document.getElementById('audioPlayer').src = currentAudioUrl;
         document.getElementById('downloadBtn').href = currentAudioUrl;
-        document.getElementById('downloadBtn').download = "render.wav";
+        document.getElementById('downloadBtn').download = "zcb3_render.wav";
         document.getElementById('previewSection').style.display = 'block';
-        addLog("Рендеринг завершен.");
+        addLog("Рендеринг завершен. Слушайте.");
     };
 
     function bufferToWav(abuffer) {
