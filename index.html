@@ -2,43 +2,45 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ZCB3 - Pro Macro Renderer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZCB3 PRO - Ultra Fast Renderer</title>
     <style>
         :root { --accent: #00ff7f; --bg: #0d0d10; --card: #16161e; }
-        body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: var(--card); border: 1px solid #2a2a35; border-radius: 16px; padding: 40px; width: 450px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
-        h1 { color: var(--accent); font-size: 22px; letter-spacing: 2px; margin-bottom: 5px; text-transform: uppercase; }
+        body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: var(--card); border: 1px solid #2a2a35; border-radius: 16px; padding: 40px; width: 450px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); text-align: center; }
+        h1 { color: var(--accent); font-size: 22px; letter-spacing: 2px; margin: 0 0 5px 0; text-transform: uppercase; }
         .subtitle { color: #666; font-size: 13px; margin-bottom: 25px; }
         .drop-zone { border: 2px dashed #3a3a45; padding: 30px; border-radius: 12px; cursor: pointer; transition: 0.3s; background: rgba(255,255,255,0.02); }
-        .drop-zone:hover { border-color: var(--accent); background: rgba(0, 255, 127, 0.05); }
-        .info-panel { margin-top: 20px; padding: 15px; background: #0b0b0f; border-radius: 8px; text-align: left; font-family: monospace; font-size: 12px; display: none; }
-        .btn { display: none; background: var(--accent); color: #000; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; width: 100%; box-sizing: border-box; transition: 0.2s; cursor: pointer; border: none; }
+        .drop-zone.active { border-color: var(--accent); background: rgba(0, 255, 127, 0.05); }
+        .info-panel { margin-top: 20px; padding: 15px; background: #0b0b0f; border-radius: 8px; text-align: left; font-family: monospace; font-size: 12px; display: none; border: 1px solid #222; }
+        .btn { display: none; background: var(--accent); color: #000; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; width: 100%; box-sizing: border-box; transition: 0.2s; cursor: pointer; border: none; font-size: 14px; }
         .btn:hover { opacity: 0.9; transform: translateY(-2px); }
-        #status { margin-top: 15px; font-size: 14px; color: var(--accent); min-height: 20px; }
-        .loader { width: 100%; height: 4px; background: #222; border-radius: 2px; margin-top: 10px; display: none; overflow: hidden; }
-        .loader-bar { width: 0%; height: 100%; background: var(--accent); transition: width 0.3s; }
+        #status { margin-top: 15px; font-size: 13px; color: var(--accent); min-height: 18px; font-family: monospace; }
+        .progress-container { width: 100%; height: 6px; background: #222; border-radius: 3px; margin-top: 15px; overflow: hidden; display: block; }
+        .progress-bar { width: 0%; height: 100%; background: var(--accent); transition: width 0.2s; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>ZCB3 G502 RENDER</h1>
-    <div class="subtitle">Logitech G502 Click Library Loaded</div>
+    <h1>ZCB3 G502 ENGINE</h1>
+    <div class="subtitle">High-Speed Macro Audio Renderer</div>
 
     <div class="drop-zone" id="dropZone">
-        Перетащите <b>.re3</b> макрос
+        <div id="dropText">Загрузка библиотеки звуков...</div>
+        <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
     </div>
+    
     <input type="file" id="fileInput" style="display: none;" accept=".re3">
 
     <div class="info-panel" id="infoPanel">
         <div id="statsText"></div>
     </div>
 
-    <div id="status"></div>
-    <div class="loader" id="loader"><div class="loader-bar" id="loaderBar"></div></div>
+    <div id="status">Система инициализируется...</div>
     
-    <button id="renderBtn" class="btn">НАЧАТЬ РЕНДЕР</button>
-    <a id="downloadBtn" class="btn">СКАЧАТЬ (.WAV)</a>
+    <button id="renderBtn" class="btn">БЫСТРЫЙ РЕНДЕР (RAM)</button>
+    <a id="downloadBtn" class="btn">СКАЧАТЬ ГОТОВЫЙ .WAV</a>
 </div>
 
 <script>
@@ -47,25 +49,65 @@
     const status = document.getElementById('status');
     const renderBtn = document.getElementById('renderBtn');
     const downloadBtn = document.getElementById('downloadBtn');
-    const loader = document.getElementById('loader');
-    const loaderBar = document.getElementById('loaderBar');
+    const progressBar = document.getElementById('progressBar');
     
-    let clickBuffers = [];
-    let releaseBuffer = null;
+    // Кэш для декодированных звуков
+    let audioCache = { clicks: [], release: null };
     let parsedEvents = [];
+    let isReady = false;
 
-    // Конфигурация путей (названия твоих файлов)
+    // Конфигурация путей (G502)
     const CLICK_COUNT = 30;
     const PATH = 'clicks/g502/';
-    const CLICK_NAME = 'alex.alexg502_Clicks_Useful_';
-    const RELEASE_NAME = 'alex.alexg502_Release_Useful_1.ogg';
+    const CLICK_PREFIX = 'alex.alexg502_Clicks_Useful_';
+    const RELEASE_FILE = 'alex.alexg502_Release_Useful_1.ogg';
 
-    dropZone.onclick = () => fileInput.click();
+    // Создаем аудио контекст
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // 1. МГНОВЕННАЯ ПАРАЛЛЕЛЬНАЯ ЗАГРУЗКА ПРИ СТАРТЕ
+    async function init() {
+        try {
+            const clickPromises = [];
+            for (let i = 1; i <= CLICK_COUNT; i++) {
+                clickPromises.push(loadAndDecode(`${PATH}${CLICK_PREFIX}${i}.ogg`, i));
+            }
+            const releasePromise = loadAndDecode(`${PATH}${RELEASE_FILE}`, 'rel');
+
+            const allClicks = await Promise.all(clickPromises);
+            audioCache.release = await releasePromise;
+            audioCache.clicks = allClicks.filter(b => b !== null);
+
+            isReady = true;
+            status.innerText = "Библиотека загружена в RAM. Жду макрос.";
+            document.getElementById('dropText').innerHTML = "Перетащите <b>.re3</b> макрос сюда";
+            progressBar.parentElement.style.display = 'none';
+        } catch (e) {
+            status.innerText = "Ошибка загрузки звуков. Проверьте пути.";
+        }
+    }
+
+    async function loadAndDecode(url, id) {
+        const res = await fetch(url);
+        const buffer = await res.arrayBuffer();
+        const decoded = await audioCtx.decodeAudioData(buffer);
+        // Обновляем прогресс-бар
+        if (typeof id === 'number') {
+            const percent = (id / CLICK_COUNT) * 100;
+            progressBar.style.width = percent + '%';
+        }
+        return decoded;
+    }
+
+    init();
+
+    // 2. ОБРАБОТКА ФАЙЛА МАКРОСА
+    dropZone.onclick = () => isReady && fileInput.click();
     fileInput.onchange = (e) => handleFile(e.target.files[0]);
 
     async function handleFile(file) {
         if (!file) return;
-        status.innerText = "Парсинг макроса...";
+        status.innerText = "Парсинг данных...";
         
         const buffer = await file.arrayBuffer();
         const view = new DataView(buffer);
@@ -78,7 +120,7 @@
             const p1_input = view.getUint32(offset, true); offset += 4;
             const p2_input = view.getUint32(offset, true); offset += 4;
 
-            // Пропуск физики (выравнивание 32 байта)
+            // Пропуск блока физики (padding 32 байта)
             offset += (p1_phys + p2_phys) * 32;
 
             parsedEvents = [];
@@ -86,95 +128,67 @@
                 const frame = view.getUint32(offset, true);
                 const isDown = view.getUint8(offset + 4) !== 0;
                 parsedEvents.push({ time: frame / tps, type: isDown });
-                offset += 12; // Размер replay_data2 с padding
+                offset += 12; // ReplayData2 с учетом padding
             }
 
             document.getElementById('infoPanel').style.display = 'block';
-            document.getElementById('statsText').innerText = `TPS: ${Math.round(tps)} | Кликов: ${p1_input}`;
-            status.innerText = "Макрос готов к рендеру";
+            document.getElementById('statsText').innerText = `Файл: ${file.name}\nTPS: ${Math.round(tps)}\nВсего событий: ${p1_input}`;
+            status.innerText = "Готов к мгновенному рендеру";
             renderBtn.style.display = 'block';
+            downloadBtn.style.display = 'none';
         } catch(e) {
-            status.innerText = "Ошибка формата файла!";
+            status.innerText = "Ошибка: Неверный формат .re3";
         }
     }
 
-    async function loadAudioLibrary(ctx) {
-        status.innerText = "Загрузка аудио-библиотеки...";
-        loader.style.display = 'block';
-        
-        // Загрузка кликов
-        for(let i=1; i <= CLICK_COUNT; i++) {
-            const url = `${PATH}${CLICK_NAME}${i}.ogg`;
-            const b = await fetchAudio(url, ctx);
-            if(b) clickBuffers.push(b);
-            loaderBar.style.width = `${(i / (CLICK_COUNT+1)) * 100}%`;
-        }
-
-        // Загрузка отжатия
-        releaseBuffer = await fetchAudio(`${PATH}${RELEASE_NAME}`, ctx);
-        loaderBar.style.width = '100%';
-    }
-
-    async function fetchAudio(url, ctx) {
-        try {
-            const res = await fetch(url);
-            const arrayBuf = await res.arrayBuffer();
-            return await ctx.decodeAudioData(arrayBuf);
-        } catch(e) { 
-            console.error("Ошибка загрузки:", url);
-            return null; 
-        }
-    }
-
+    // 3. СВЕРХБЫСТРЫЙ РЕНДЕР ЧЕРЕЗ OFFLINE CONTEXT
     renderBtn.onclick = async () => {
+        status.innerText = "Сборка аудио в памяти...";
         renderBtn.style.display = 'none';
+
         const sampleRate = 44100;
-        const duration = parsedEvents[parsedEvents.length-1].time + 1;
-        const offlineCtx = new OfflineAudioContext(1, sampleRate * duration, sampleRate);
-
-        if(clickBuffers.length === 0) {
-            await loadAudioLibrary(offlineCtx);
-        }
-
-        status.innerText = "Рендеринг финальной дорожки...";
+        const duration = parsedEvents[parsedEvents.length - 1].time + 1.0;
         
+        // OfflineAudioContext — это самый быстрый способ рендеринга в JS
+        const offlineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * duration), sampleRate);
+
         parsedEvents.forEach(ev => {
             const source = offlineCtx.createBufferSource();
-            if(ev.type) {
-                // Случайный клик из 30
-                source.buffer = clickBuffers[Math.floor(Math.random() * clickBuffers.length)];
-            } else {
-                source.buffer = releaseBuffer;
-            }
+            // Берем готовый Buffer из кэша (0 задержки)
+            source.buffer = ev.type ? 
+                audioCache.clicks[Math.floor(Math.random() * audioCache.clicks.length)] : 
+                audioCache.release;
 
-            // Рандомизация для реализма
+            // Рандомизация (Pitch/Volume)
             const gain = offlineCtx.createGain();
-            gain.gain.value = 0.85 + Math.random() * 0.3;
-            
-            source.playbackRate.value = 0.98 + Math.random() * 0.04; // Pitch shift
+            gain.gain.value = 0.8 + Math.random() * 0.4;
+            source.playbackRate.value = 0.97 + Math.random() * 0.06;
 
             source.connect(gain);
             gain.connect(offlineCtx.destination);
             source.start(ev.time);
         });
 
-        const rendered = await offlineCtx.startRendering();
-        const wav = bufferToWav(rendered);
-        downloadBtn.href = URL.createObjectURL(new Blob([wav], {type:'audio/wav'}));
-        downloadBtn.download = "zcb3_render.wav";
+        const finalBuffer = await offlineCtx.startRendering();
+        const wavBlob = new Blob([bufferToWav(finalBuffer)], { type: 'audio/wav' });
+        
+        downloadBtn.href = URL.createObjectURL(wavBlob);
+        downloadBtn.download = `zcb3_render_${Date.now()}.wav`;
         downloadBtn.style.display = 'block';
-        status.innerText = "Рендер завершен!";
-        loader.style.display = 'none';
+        status.innerText = "Рендер завершен успешно!";
     };
 
+    // Оптимизированный конвертер в WAV
     function bufferToWav(abuffer) {
-        let n = abuffer.numberOfChannels, len = abuffer.length*n*2+44, buf = new ArrayBuffer(len), v = new DataView(buf), off = 0, p = 0;
+        let n = abuffer.numberOfChannels, len = abuffer.length * n * 2 + 44,
+            buf = new ArrayBuffer(len), v = new DataView(buf), off = 0, p = 0;
         const u32 = (d) => { v.setUint32(p, d, true); p += 4; }, u16 = (d) => { v.setUint16(p, d, true); p += 2; };
-        u32(0x46464952); u32(len-8); u32(0x45564157); u32(0x20746d66); u32(16); u16(1); u16(n);
-        u32(abuffer.sampleRate); u32(abuffer.sampleRate*2*n); u16(n*2); u16(16); u32(0x61746164); u32(len-p-4);
-        while(p < len) { 
-            let s = Math.max(-1, Math.min(1, abuffer.getChannelData(0)[off]));
-            v.setInt16(p, s < 0 ? s*0x8000 : s*0x7FFF, true); p += 2; off++;
+        u32(0x46464952); u32(len - 8); u32(0x45564157); u32(0x20746d66); u32(16); u16(1); u16(n);
+        u32(abuffer.sampleRate); u32(abuffer.sampleRate * 2 * n); u16(n * 2); u16(16); u32(0x61746164); u32(len - p - 4);
+        const chData = abuffer.getChannelData(0);
+        while (p < len) {
+            let s = Math.max(-1, Math.min(1, chData[off++]));
+            v.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7FFF, true); p += 2;
         }
         return buf;
     }
