@@ -4,113 +4,138 @@
     <meta charset="UTF-8">
     <title>ZCB3 - RE3 Macro Renderer</title>
     <style>
-        body { background: #0e0e12; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: #1c1c24; padding: 30px; border-radius: 15px; text-align: center; border: 1px solid #333; width: 400px; }
-        .drop-zone { border: 2px dashed #5865f2; padding: 40px; border-radius: 10px; cursor: pointer; margin: 20px 0; transition: 0.3s; }
-        .drop-zone:hover { background: rgba(88, 101, 242, 0.1); }
-        .btn { background: #5865f2; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: none; font-weight: bold; }
-        #log { font-size: 12px; color: #888; margin-top: 10px; }
+        :root { --accent: #00ff7f; --bg: #0d0d10; --card: #16161e; }
+        body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: var(--card); border: 1px solid #2a2a35; border-radius: 16px; padding: 40px; width: 450px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
+        h1 { color: var(--accent); font-size: 22px; letter-spacing: 2px; margin-bottom: 5px; }
+        .subtitle { color: #666; font-size: 13px; margin-bottom: 25px; }
+        .drop-zone { border: 2px dashed #3a3a45; padding: 30px; border-radius: 12px; cursor: pointer; transition: 0.3s; background: rgba(255,255,255,0.02); }
+        .drop-zone:hover { border-color: var(--accent); background: rgba(0, 255, 127, 0.05); }
+        .info-panel { margin-top: 20px; padding: 15px; background: #0b0b0f; border-radius: 8px; text-align: left; font-family: monospace; font-size: 12px; display: none; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .btn { display: none; background: var(--accent); color: #000; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; width: 100%; box-sizing: border-box; transition: 0.2s; }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        #status { margin-top: 15px; font-size: 14px; color: var(--accent); }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2 style="color: #5865f2;">ZCB3 RE3 RENDERER</h2>
-    <div class="drop-zone" id="dropZone">Кликни или перетащи .re3 файл</div>
-    <input type="file" id="fileInput" style="display: none;">
-    <div id="log">Ожидание файла...</div>
-    <a id="dl" class="btn">СКАЧАТЬ АУДИО (.WAV)</a>
+<div class="container">
+    <h1>ZCB3 RENDERER</h1>
+    <div class="subtitle">Конвертация .re3 макросов в аудио</div>
+
+    <div class="drop-zone" id="dropZone">
+        <div style="font-size: 30px; margin-bottom: 10px;">📄</div>
+        Перетащите файл <b>.re3</b> сюда<br>
+        <span style="font-size: 11px; color: #555;">(от Rabbot или других модов)</span>
+    </div>
+    <input type="file" id="fileInput" style="display: none;" accept=".re3">
+
+    <div class="info-panel" id="infoPanel">
+        <div class="info-row"><span>TPS:</span> <b id="tpsVal">-</b></div>
+        <div class="info-row"><span>Кликов (P1):</span> <b id="clickVal">-</b></div>
+        <div class="info-row"><span>Длительность:</span> <b id="durVal">-</b></div>
+    </div>
+
+    <div id="status"></div>
+    <a id="downloadBtn" class="btn">СКАЧАТЬ КЛИКИ (.WAV)</a>
 </div>
 
 <script>
     const fileInput = document.getElementById('fileInput');
     const dropZone = document.getElementById('dropZone');
-    const log = document.getElementById('log');
-    const dl = document.getElementById('dl');
+    const status = document.getElementById('status');
+    const dl = document.getElementById('downloadBtn');
+    const info = document.getElementById('infoPanel');
 
     dropZone.onclick = () => fileInput.click();
-    fileInput.onchange = (e) => processReplay(e.target.files[0]);
+    fileInput.onchange = (e) => process(e.target.files[0]);
 
-    async function processReplay(file) {
+    async function process(file) {
         if (!file) return;
-        log.innerText = "Парсинг бинарных данных...";
+        status.innerText = "Анализ файла...";
+        dl.style.display = 'none';
+        
         const buffer = await file.arrayBuffer();
         const view = new DataView(buffer);
-        
         let offset = 0;
 
-        // 1. Читаем TPS (float32)
-        const tps = view.getFloat32(offset, true);
-        offset += 4;
+        try {
+            const tps = view.getFloat32(offset, true); offset += 4;
+            const p1_phys = view.getUint32(offset, true); offset += 4;
+            const p2_phys = view.getUint32(offset, true); offset += 4;
+            const p1_input = view.getUint32(offset, true); offset += 4;
+            const p2_input = view.getUint32(offset, true); offset += 4;
 
-        // 2. Читаем размеры (4 шт uint32)
-        const p1_phys_size = view.getUint32(offset, true); offset += 4;
-        const p2_phys_size = view.getUint32(offset, true); offset += 4;
-        const p1_input_size = view.getUint32(offset, true); offset += 4;
-        const p2_input_size = view.getUint32(offset, true); offset += 4;
+            // В C++ структура replay_data с учетом padding обычно 32 байта
+            // (4+4+4+4+8+1 = 25 -> выравнивание до 32)
+            const PHYS_SIZE = 32; 
+            offset += (p1_phys + p2_phys) * PHYS_SIZE;
 
-        log.innerText = `TPS: ${tps} | Кликов: ${p1_input_size}`;
+            const inputs = [];
+            // Структура replay_data2: frame(4), down(1), button(4), player(1) = 10 -> выравнивание до 12
+            const INPUT_SIZE = 12; 
 
-        // 3. Пропускаем физические данные (они нам не нужны для звука)
-        // Структура replay_data занимает 4(int) + 4(float) + 4(float) + 4(float) + 8(double) + 1(bool) = 25 байт.
-        // НО: из-за выравнивания в C++ (padding) размер структуры может быть 32 байта.
-        const REPLAY_DATA_SIZE = 32; 
-        offset += (p1_phys_size + p2_phys_size) * REPLAY_DATA_SIZE;
-
-        // 4. Читаем инпуты (replay_data2)
-        // Структура: frame(4), down(1), button(4), isPlayer1(1). С учетом выравнивания ~12 байт.
-        const INPUT_DATA_SIZE = 12; 
-        const clickTimes = [];
-
-        for (let i = 0; i < p1_input_size; i++) {
-            const frame = view.getUint32(offset, true);
-            const isDown = view.getUint8(offset + 4) !== 0;
-            
-            if (isDown) {
-                clickTimes.push(frame / tps);
+            for(let i=0; i < p1_input; i++) {
+                const frame = view.getUint32(offset, true);
+                const isDown = view.getUint8(offset + 4) !== 0;
+                inputs.push({ time: frame / tps, type: isDown });
+                offset += INPUT_SIZE;
             }
-            offset += INPUT_DATA_SIZE;
-        }
 
-        renderAudio(clickTimes);
+            document.getElementById('tpsVal').innerText = Math.round(tps);
+            document.getElementById('clickVal').innerText = p1_input;
+            document.getElementById('durVal').innerText = (inputs[inputs.length-1].time).toFixed(2) + " сек";
+            info.style.display = 'block';
+
+            render(inputs);
+        } catch(e) {
+            status.innerText = "Ошибка парсинга. Проверь формат файла.";
+            console.error(e);
+        }
     }
 
-    async function renderAudio(times) {
-        if (times.length === 0) { log.innerText = "Кликов не найдено!"; return; }
-        
+    async function render(events) {
+        status.innerText = "Рендеринг аудио...";
         const sampleRate = 44100;
-        const duration = times[times.length - 1] + 1;
+        const duration = events[events.length-1].time + 1;
         const ctx = new OfflineAudioContext(1, sampleRate * duration, sampleRate);
 
-        // Создаем звук клика
-        const clickBuff = ctx.createBuffer(1, sampleRate * 0.1, sampleRate);
-        const cd = clickBuff.getChannelData(0);
-        for(let i=0; i<cd.length; i++) cd[i] = Math.exp(-i/400) * Math.sin(i/8);
+        // Синтез звука (Клик и Отпускание)
+        const createClick = (isDown) => {
+            const b = ctx.createBuffer(1, sampleRate * 0.1, sampleRate);
+            const d = b.getChannelData(0);
+            const freq = isDown ? 150 : 250; 
+            for(let i=0; i<d.length; i++) d[i] = Math.exp(-i/(isDown?500:300)) * Math.sin(i / (sampleRate/freq/6.28));
+            return b;
+        };
 
-        times.forEach(t => {
+        const downSound = createClick(true);
+        const upSound = createClick(false);
+
+        events.forEach(ev => {
             const s = ctx.createBufferSource();
-            s.buffer = clickBuff;
+            s.buffer = ev.type ? downSound : upSound;
             s.connect(ctx.destination);
-            s.start(t);
+            s.start(ev.time);
         });
 
-        const rendered = await ctx.startRendering();
-        const wav = bufferToWav(rendered);
-        const url = URL.createObjectURL(new Blob([wav], {type:'audio/wav'}));
-        
-        dl.href = url;
-        dl.style.display = 'inline-block';
-        log.innerText = "Рендеринг завершен!";
+        const final = await ctx.startRendering();
+        const wav = bufferToWav(final);
+        dl.href = URL.createObjectURL(new Blob([wav], {type:'audio/wav'}));
+        dl.style.display = 'block';
+        status.innerText = "Готово!";
     }
 
-    // Стандартный конвертер в WAV
     function bufferToWav(abuffer) {
-        let n = abuffer.numberOfChannels, len = abuffer.length*n*2+44, buf = new ArrayBuffer(len), v = new DataView(buf), chs = [], i, s, off = 0, p = 0;
-        const u16 = (d) => { v.setUint16(p, d, true); p += 2; }, u32 = (d) => { v.setUint32(p, d, true); p += 4; };
+        let n = abuffer.numberOfChannels, len = abuffer.length*n*2+44, buf = new ArrayBuffer(len), v = new DataView(buf), off = 0, p = 0;
+        const u32 = (d) => { v.setUint32(p, d, true); p += 4; }, u16 = (d) => { v.setUint16(p, d, true); p += 2; };
         u32(0x46464952); u32(len-8); u32(0x45564157); u32(0x20746d66); u32(16); u16(1); u16(n);
         u32(abuffer.sampleRate); u32(abuffer.sampleRate*2*n); u16(n*2); u16(16); u32(0x61746164); u32(len-p-4);
-        for(i=0; i<n; i++) chs.push(abuffer.getChannelData(i));
-        while(p < len) { for(i=0; i<n; i++) { s = Math.max(-1, Math.min(1, chs[i][off])); v.setInt16(p, s < 0 ? s*0x8000 : s*0x7FFF, true); p += 2; } off++; }
+        while(p < len) { 
+            let s = Math.max(-1, Math.min(1, abuffer.getChannelData(0)[off]));
+            v.setInt16(p, s < 0 ? s*0x8000 : s*0x7FFF, true); p += 2; off++;
+        }
         return buf;
     }
 </script>
