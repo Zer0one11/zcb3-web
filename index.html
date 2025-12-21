@@ -2,30 +2,27 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>zcb3 WEB - ZIP Manual</title>
+    <title>zcb3 WEB - Classic</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0d0d10; }
-        body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .container { background: #16161e; border: 1px solid #2a2a35; border-radius: 16px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
-        h1 { color: var(--accent); font-size: 20px; text-align: center; text-transform: uppercase; margin-top: 0; letter-spacing: 2px; }
+        body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: #16161e; border: 1px solid #2a2a35; border-radius: 16px; padding: 25px; width: 400px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        h1 { color: var(--accent); font-size: 18px; text-align: center; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 2px; }
         
-        .section-label { display: block; font-size: 10px; color: #666; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; }
+        select, .btn-action { width: 100%; background: #000; color: var(--accent); border: 1px solid #333; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; outline: none; margin-bottom: 15px; }
+        .btn-action { background: var(--accent); color: #000; border: none; display: none; margin-top: 10px; }
         
-        .upload-area { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        .btn-upload { background: #1a1a24; color: #fff; border: 1px dashed #444; padding: 15px; border-radius: 10px; cursor: pointer; text-align: center; transition: 0.3s; }
-        .btn-upload:hover { border-color: var(--accent); background: #222; }
-        .btn-upload.loaded { border-style: solid; border-color: var(--accent); color: var(--accent); }
+        .drop-zone { border: 2px dashed #333; padding: 25px; text-align: center; border-radius: 10px; cursor: pointer; color: #888; transition: 0.3s; }
+        .drop-zone:hover { border-color: var(--accent); color: #fff; }
 
-        .control-group { margin: 15px 0; background: #000; padding: 15px; border-radius: 8px; border: 1px solid #222; }
-        .status-box { margin-top: 15px; padding: 12px; background: #050505; border-radius: 5px; font-family: 'Consolas', monospace; font-size: 11px; height: 100px; overflow-y: auto; color: #00ff7f; border: 1px solid #1a1a1a; }
+        .controls { margin-top: 20px; background: #0a0a0f; padding: 15px; border-radius: 8px; }
+        label { font-size: 10px; color: #555; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); }
         
-        .btn-main { display: none; background: var(--accent); color: #000; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 10px; width: 100%; border: none; cursor: pointer; text-transform: uppercase; }
-        
-        .preview-section { margin-top: 20px; display: none; border-top: 1px solid #333; padding-top: 20px; }
-        audio { width: 100%; filter: invert(100%) hue-rotate(180deg); margin-bottom: 10px; }
-        
-        .footer { margin-top: 25px; text-align: center; font-size: 12px; color: #444; }
+        .status { margin-top: 15px; font-size: 11px; color: #00ff7f; font-family: monospace; text-align: center; }
+        .preview { margin-top: 20px; display: none; text-align: center; border-top: 1px solid #222; padding-top: 15px; }
+        audio { width: 100%; filter: invert(1); }
     </style>
 </head>
 <body>
@@ -33,147 +30,94 @@
 <div class="container">
     <h1>zcb3 WEB</h1>
     
-    <div class="upload-area">
-        <span class="section-label">1. ЗАГРУЗИТЕ ФАЙЛЫ</span>
-        <div id="zipBtn" class="btn-upload" onclick="document.getElementById('zipInput').click()">📁 ВЫБРАТЬ ZIP (КЛИК-ПАК)</div>
-        <div id="macroBtn" class="btn-upload" onclick="document.getElementById('macroInput').click()">📝 ВЫБРАТЬ JSON (МАКРОС)</div>
-    </div>
+    <label>Выберите пак:</label>
+    <select id="packSelect" onchange="loadZip(this.value)">
+        <option value="razer-deathadder-elite">Razer Deathadder</option>
+        <option value="logitech-g-pro-x-superlight-mouse">Logitech G Pro X</option>
+        <option value="zfxnts-g502-hero">Logitech G502</option>
+        <option value="zoink-click-pack">Zoink Clickpack</option>
+    </select>
 
-    <input type="file" id="zipInput" style="display: none;" accept=".zip" onchange="handleZip(this.files[0])">
+    <div class="drop-zone" onclick="document.getElementById('macroInput').click()" id="dropZone">
+        ВЫБРАТЬ МАКРОС (.JSON)
+    </div>
     <input type="file" id="macroInput" style="display: none;" accept=".json" onchange="handleMacro(this.files[0])">
 
-    <div class="control-group">
-        <label class="section-label">ГРОМКОСТЬ: <span id="volVal" style="float:right; color:var(--accent)">100%</span></label>
-        <input type="range" id="volumeRange" min="0" max="300" value="100" style="width:100%; accent-color:var(--accent)" oninput="volVal.innerText=this.value+'%'">
+    <div class="controls">
+        <label>Громкость</label>
+        <input type="range" id="volRange" min="0" max="200" value="100">
     </div>
 
-    <div class="status-box" id="log">Ожидание файлов...</div>
+    <div class="status" id="status">Ожидание...</div>
 
-    <button id="renderBtn" class="btn-main" onclick="renderAudio()">Сгенерировать звук</button>
+    <button id="renderBtn" class="btn-action" onclick="renderAudio()">ОБРАБОТАТЬ</button>
 
-    <div class="preview-section" id="previewSection">
-        <audio id="audioPlayer" controls></audio>
-        <a id="downloadBtn" href="#" class="btn-main" style="display:block; background:#fff; text-decoration:none; text-align:center">Скачать результат</a>
+    <div class="preview" id="preview">
+        <audio id="player" controls></audio>
+        <a id="download" style="color: var(--accent); text-decoration: none; font-size: 12px; display: block; margin-top: 10px;" href="#">СКАЧАТЬ WAV</a>
     </div>
-
-    <div class="footer">Made by HELFZz</div>
 </div>
 
 <script>
-    let audioCache = { clicks: [], releases: [] };
-    let macroEvents = [];
-    let currentTps = 240;
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let audioCache = { clicks: [], releases: [] }, macroEvents = [], currentTps = 240;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-    function addLog(t) {
-        const b = document.getElementById('log');
-        b.innerText += `\n> ${t}`;
-        b.scrollTop = b.scrollHeight;
-    }
-
-    async function handleZip(file) {
-        if (!file) return;
-        addLog(`Распаковка: ${file.name}`);
+    async function loadZip(name) {
+        status.innerText = "Загрузка пака...";
         audioCache = { clicks: [], releases: [] };
-        
         try {
-            const zip = await JSZip.loadAsync(file);
+            const res = await fetch(`packs/${name}.zip`);
+            const zip = await JSZip.loadAsync(await res.blob());
             const tasks = [];
 
-            zip.forEach((path, zipEntry) => {
-                const lowPath = path.toLowerCase();
-                const isAudio = lowPath.endsWith('.ogg') || lowPath.endsWith('.wav') || lowPath.endsWith('.mp3');
-                
-                if (!zipEntry.dir && isAudio) {
-                    const isClick = lowPath.includes('click');
-                    const isRel = lowPath.includes('release');
-                    
-                    if (isClick || isRel) {
-                        const t = zipEntry.async("arraybuffer").then(async (data) => {
-                            try {
-                                const buffer = await audioCtx.decodeAudioData(data);
-                                if (isClick) audioCache.clicks.push(buffer);
-                                else audioCache.releases.push(buffer);
-                            } catch(e) { console.warn("Ошибка декодирования файла:", path); }
-                        });
-                        tasks.push(t);
-                    }
+            zip.forEach((path, entry) => {
+                if (!entry.dir && (path.toLowerCase().endsWith('.ogg') || path.toLowerCase().endsWith('.wav'))) {
+                    const isClick = path.toLowerCase().includes('click');
+                    tasks.push(entry.async("arraybuffer").then(async data => {
+                        const buffer = await ctx.decodeAudioData(data);
+                        if (isClick) audioCache.clicks.push(buffer);
+                        else audioCache.releases.push(buffer);
+                    }));
                 }
             });
-
             await Promise.all(tasks);
-            
-            if (audioCache.clicks.length > 0) {
-                document.getElementById('zipBtn').innerText = `✅ ПАК: ${file.name}`;
-                document.getElementById('zipBtn').classList.add('loaded');
-                addLog(`Загружено кликов: ${audioCache.clicks.length}, релизов: ${audioCache.releases.length}`);
-                checkReady();
-            } else {
-                addLog("Ошибка: В ZIP не найдены папки Clicks или Releases!");
-            }
-        } catch (e) { addLog("Ошибка при чтении ZIP архива."); }
+            status.innerText = `Пак готов (C:${audioCache.clicks.length} R:${audioCache.releases.length})`;
+        } catch (e) { status.innerText = "Ошибка загрузки ZIP"; }
     }
 
     async function handleMacro(file) {
         if (!file) return;
-        try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            macroEvents = [];
-            currentTps = data.framerate || 240;
-            const events = data.inputs || data.events || [];
-            
-            events.forEach(e => {
-                macroEvents.push({ f: e.frame ?? e.f, d: e.down ?? e.d });
-            });
-
-            document.getElementById('macroBtn').innerText = `✅ МАКРОС: ${file.name}`;
-            document.getElementById('macroBtn').classList.add('loaded');
-            addLog(`Макрос ок! Событий: ${macroEvents.length}`);
-            checkReady();
-        } catch (e) { addLog("Ошибка: Неверный формат JSON макроса."); }
-    }
-
-    function checkReady() {
-        if (audioCache.clicks.length > 0 && macroEvents.length > 0) {
-            document.getElementById('renderBtn').style.display = 'block';
-        }
+        const data = JSON.parse(await file.text());
+        macroEvents = (data.inputs || data.events).map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d }));
+        currentTps = data.framerate || 240;
+        dropZone.innerText = "✅ " + file.name;
+        renderBtn.style.display = "block";
     }
 
     async function renderAudio() {
-        const vol = parseInt(document.getElementById('volumeRange').value) / 100;
-        const lastEvent = macroEvents[macroEvents.length - 1];
-        const duration = (lastEvent.f / currentTps) + 1.5;
-        
-        addLog("Рендеринг...");
-        const offlineCtx = new OfflineAudioContext(1, 44100 * duration, 44100);
+        const vol = volRange.value / 100;
+        const duration = (macroEvents[macroEvents.length - 1].f / currentTps) + 1.5;
+        const oCtx = new OfflineAudioContext(1, 44100 * duration, 44100);
 
         macroEvents.forEach(ev => {
-            const time = ev.f / currentTps;
             const pool = ev.d ? audioCache.clicks : audioCache.releases;
-            
-            if (pool && pool.length > 0) {
-                const source = offlineCtx.createBufferSource();
-                source.buffer = pool[Math.floor(Math.random() * pool.length)];
-                
-                const gain = offlineCtx.createGain();
-                gain.gain.value = (0.8 + Math.random() * 0.2) * vol;
-                
-                source.connect(gain);
-                gain.connect(offlineCtx.destination);
-                source.start(time);
+            if (pool.length) {
+                const s = oCtx.createBufferSource();
+                s.buffer = pool[Math.floor(Math.random() * pool.length)];
+                const g = oCtx.createGain();
+                g.gain.value = (0.8 + Math.random() * 0.2) * vol;
+                s.connect(g); g.connect(oCtx.destination);
+                s.start(ev.f / currentTps);
             }
         });
 
-        const renderedBuffer = await offlineCtx.startRendering();
-        const wavBlob = bufferToWav(renderedBuffer);
-        const url = URL.createObjectURL(wavBlob);
-        
-        document.getElementById('audioPlayer').src = url;
-        document.getElementById('downloadBtn').href = url;
-        document.getElementById('downloadBtn').download = "clicks_render.wav";
-        document.getElementById('previewSection').style.display = 'block';
-        addLog("Готово! Слушайте или скачивайте.");
+        const rendered = await oCtx.startRendering();
+        const url = URL.createObjectURL(bufferToWav(rendered));
+        player.src = url;
+        download.href = url;
+        download.download = "result.wav";
+        preview.style.display = "block";
+        status.innerText = "Рендер завершен!";
     }
 
     function bufferToWav(ab) {
@@ -187,6 +131,8 @@
         for(let i=0;i<d.length;i++){let x=Math.max(-1,Math.min(1,d[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}
         return new Blob([b], {type:'audio/wav'});
     }
+
+    window.onload = () => loadZip(packSelect.value);
 </script>
 </body>
 </html>
