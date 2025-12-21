@@ -14,7 +14,6 @@
 
         label { display: block; font-size: 10px; color: #555; margin-bottom: 8px; text-transform: uppercase; font-weight: 800; letter-spacing: 1.5px; }
         
-        /* Кнопки основных паков из репозитория clicks */
         .main-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 13px; }
         .pack-btn:hover { border-color: var(--accent); color: #fff; }
@@ -30,9 +29,10 @@
         .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
 
-        .status-box { padding: 12px; background: #08080a; border-radius: 10px; font-family: monospace; font-size: 10px; height: 40px; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
+        .status-box { padding: 12px; background: #000; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
         
-        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; }
+        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; transition: 0.3s; }
+        .btn-go:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,127,0.3); }
 
         .preview { margin-top: 25px; display: none; border-top: 1px solid #222; padding-top: 20px; }
         audio { width: 100%; filter: invert(1) hue-rotate(180deg); margin-bottom: 15px; }
@@ -44,15 +44,15 @@
 <div class="container">
     <h1>zcb3 WEB</h1>
     
-    <label>Основные паки (из репозитория clicks):</label>
+    <label>Основные паки (из /clicks/):</label>
     <div class="main-packs">
         <button class="pack-btn" onclick="loadMainPack('g502', this)">G502 Hero</button>
-        <button class="pack-btn" onclick="loadMainPack('viper', this)">Viper 8K</button>
+        <button class="pack-btn" onclick="loadMainPack('Viper-8K', this)">Viper 8K</button>
     </div>
 
-    <label>Все паки:</label>
+    <label>Дополнительные (из /packs/):</label>
     <select id="packSelect" onchange="loadZip(this.value)">
-        <option>Загрузка...</option>
+        <option>Загрузка списка...</option>
     </select>
 
     <label>Макрос:</label>
@@ -76,7 +76,7 @@
         </div>
     </div>
 
-    <div class="status-box" id="log">Готов</div>
+    <div class="status-box" id="log">Ожидание...</div>
     <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать аудио</button>
 
     <div class="preview" id="previewArea">
@@ -90,37 +90,42 @@
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     let audioCache = { clicks: [], releases: [] }, macroEvents = [], currentTps = 240;
 
-    function addLog(m) { log.innerText = "> " + m; }
+    function addLog(m) { 
+        log.innerText = "> " + m; 
+        log.scrollTop = log.scrollHeight;
+    }
 
-    // Загрузка "основных" паков из папки clicks репозитория
-    async function loadMainPack(model, btn) {
+    // ЗАГРУЗКА ИЗ ПАПКИ CLICKS (G502, Viper-8K)
+    async function loadMainPack(folder, btn) {
         document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('packSelect').value = "";
         
-        addLog(`Загрузка пака ${model}...`);
+        addLog(`Загрузка пака ${folder}...`);
         audioCache = { clicks: [], releases: [] };
         
         try {
-            // Предполагаем структуру: clicks/g502/click1.wav, clicks/g502/rel1.wav и т.д.
-            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${model}`);
+            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${folder}`);
+            if(!res.ok) throw new Error("Папка не найдена");
             const files = await res.json();
             
-            const p = files.map(async file => {
-                if (file.name.endsWith('.wav') || file.name.endsWith('.ogg')) {
-                    const audioRes = await fetch(file.download_url);
-                    const b = await ctx.decodeAudioData(await audioRes.arrayBuffer());
-                    if (file.name.toLowerCase().includes('click')) audioCache.clicks.push(b);
-                    else if (file.name.toLowerCase().includes('rel')) audioCache.releases.push(b);
+            const tasks = files.filter(f => f.type === 'file').map(async f => {
+                const ln = f.name.toLowerCase();
+                if (ln.endsWith('.wav') || ln.endsWith('.ogg') || ln.endsWith('.mp3')) {
+                    const data = await (await fetch(f.download_url)).arrayBuffer();
+                    const buf = await ctx.decodeAudioData(data);
+                    if (ln.includes('click')) audioCache.clicks.push(buf);
+                    else if (ln.includes('rel')) audioCache.releases.push(buf);
                 }
             });
             
-            await Promise.all(p);
-            addLog(`Пак ${model} готов!`);
+            await Promise.all(tasks);
+            addLog(`✅ ${folder} готов! C:${audioCache.clicks.length} R:${audioCache.releases.length}`);
             checkReady();
-        } catch (e) { addLog("Ошибка загрузки основного пака"); }
+        } catch (e) { addLog(`❌ Ошибка загрузки: ${folder}`); }
     }
 
+    // СПИСОК ВСЕХ ZIP ПАКОВ
     async function initPacks() {
         try {
             const res = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
@@ -133,10 +138,13 @@
                 opt.innerText = opt.value.replace(/-/g, ' ').toUpperCase();
                 sel.appendChild(opt);
             });
-        } catch (e) { addLog("Ошибка списка"); }
+            addLog("Список паков обновлен");
+        } catch (e) { addLog("Ошибка GitHub API"); }
     }
 
+    // ЗАГРУЗКА ZIP
     async function loadZip(id) {
+        document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('active'));
         addLog(`Загрузка ZIP: ${id}...`);
         audioCache = { clicks: [], releases: [] };
         try {
@@ -144,18 +152,19 @@
             const zip = await JSZip.loadAsync(await res.blob());
             const p = [];
             zip.forEach((path, file) => {
-                if (!file.dir && (path.endsWith('.wav') || path.endsWith('.ogg'))) {
+                const ln = path.toLowerCase();
+                if (!file.dir && (ln.endsWith('.wav') || ln.endsWith('.ogg'))) {
                     p.push(file.async("arraybuffer").then(async d => {
                         const b = await ctx.decodeAudioData(d);
-                        if (path.toLowerCase().includes('click')) audioCache.clicks.push(b);
-                        else audioCache.releases.push(b);
+                        if (ln.includes('click')) audioCache.clicks.push(b);
+                        else if (ln.includes('rel')) audioCache.releases.push(b);
                     }));
                 }
             });
             await Promise.all(p);
-            addLog("ZIP пак загружен");
+            addLog("✅ ZIP пак загружен");
             checkReady();
-        } catch (e) { addLog("Ошибка ZIP"); }
+        } catch (e) { addLog("❌ Ошибка ZIP"); }
     }
 
     async function handleMacro(f) {
@@ -176,7 +185,7 @@
             }
             dropZone.innerText = "✅ " + f.name; dropZone.classList.add('active');
             checkReady();
-        } catch(e) { addLog("Ошибка макроса"); }
+        } catch(e) { addLog("❌ Ошибка макроса"); }
     }
 
     function checkReady() { if(audioCache.clicks.length && macroEvents.length) renderBtn.style.display = 'block'; }
@@ -186,16 +195,19 @@
         const vol = volRange.value / 100;
         const offset = parseInt(offRange.value) / 1000;
         const dur = (macroEvents[macroEvents.length-1].f / currentTps) + 2;
-        const oCtx = new OfflineAudioContext(1, 44100 * Math.max(1, dur), 44100);
+        const oCtx = new OfflineAudioContext(1, 44100 * Math.max(1, Math.ceil(dur)), 44100);
         
         macroEvents.forEach(ev => {
             const time = (ev.f / currentTps) + offset;
             if (time < 0) return;
             const pool = ev.d ? audioCache.clicks : audioCache.releases;
             if (pool.length) {
-                const s = oCtx.createBufferSource(); s.buffer = pool[Math.floor(Math.random()*pool.length)];
-                const g = oCtx.createGain(); g.gain.value = (0.8 + Math.random()*0.2) * vol;
-                s.connect(g); g.connect(oCtx.destination); s.start(time);
+                const s = oCtx.createBufferSource();
+                s.buffer = pool[Math.floor(Math.random()*pool.length)];
+                const g = oCtx.createGain();
+                g.gain.value = (0.8 + Math.random()*0.2) * vol;
+                s.connect(g); g.connect(oCtx.destination);
+                s.start(time);
             }
         });
         
