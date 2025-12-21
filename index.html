@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zcb3 WEB</title>
+    <title>zcb3 WEB - True Progress</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
@@ -29,9 +29,9 @@
         .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
 
-        /* Стили прогресс-бара */
-        .progress-container { width: 100%; height: 6px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; border: 1px solid #1a1a1f; }
-        .progress-bar { width: 0%; height: 100%; background: var(--accent); box-shadow: 0 0 10px var(--accent); transition: width 0.1s ease; }
+        /* Прогресс-бар */
+        .progress-container { width: 100%; height: 8px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; border: 1px solid #1a1a1f; position: relative; }
+        .progress-bar { width: 0%; height: 100%; background: var(--accent); box-shadow: 0 0 15px var(--accent); transition: width 0.3s ease; }
 
         .status-box { padding: 12px; background: #000; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
         
@@ -111,11 +111,10 @@
         audioCache = { clicks: [], releases: [] };
         try {
             const res = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${folder}`);
-            if(!res.ok) throw new Error("Папка не найдена");
             const files = await res.json();
             const tasks = files.filter(f => f.type === 'file').map(async f => {
                 const ln = f.name.toLowerCase();
-                if (ln.endsWith('.wav') || ln.endsWith('.ogg') || ln.endsWith('.mp3')) {
+                if (ln.endsWith('.wav') || ln.endsWith('.ogg')) {
                     const data = await (await fetch(f.download_url)).arrayBuffer();
                     const buf = await ctx.decodeAudioData(data);
                     if (ln.includes('click')) audioCache.clicks.push(buf);
@@ -125,7 +124,7 @@
             await Promise.all(tasks);
             addLog(`✅ ${folder} готов!`);
             checkReady();
-        } catch (e) { addLog(`❌ Ошибка загрузки: ${folder}`); }
+        } catch (e) { addLog(`❌ Ошибка загрузки`); }
     }
 
     async function initPacks() {
@@ -140,7 +139,7 @@
                 opt.innerText = opt.value.replace(/-/g, ' ').toUpperCase();
                 sel.appendChild(opt);
             });
-        } catch (e) { addLog("Ошибка GitHub API"); }
+        } catch (e) {}
     }
 
     async function loadZip(id) {
@@ -170,40 +169,36 @@
     async function handleMacro(f) {
         if(!f) return;
         const buf = await f.arrayBuffer();
-        try {
-            if(f.name.endsWith('.re3')) {
-                const v = new DataView(buf); currentTps = v.getFloat32(0, true);
-                let o = 20 + (v.getUint32(4, true) + v.getUint32(8, true)) * 32;
-                macroEvents = [];
-                for(let i=0; i<v.getUint32(12, true); i++) {
-                    macroEvents.push({ f: v.getUint32(o, true), d: v.getUint8(o+4)!==0 }); o += 16;
-                }
-            } else {
-                const d = JSON.parse(new TextDecoder().decode(buf));
-                currentTps = d.framerate || 240;
-                macroEvents = (d.inputs || d.events).map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d }));
+        if(f.name.endsWith('.re3')) {
+            const v = new DataView(buf); currentTps = v.getFloat32(0, true);
+            let o = 20 + (v.getUint32(4, true) + v.getUint32(8, true)) * 32;
+            macroEvents = [];
+            for(let i=0; i<v.getUint32(12, true); i++) {
+                macroEvents.push({ f: v.getUint32(o, true), d: v.getUint8(o+4)!==0 }); o += 16;
             }
-            dropZone.innerText = "✅ " + f.name; dropZone.classList.add('active');
-            checkReady();
-        } catch(e) { addLog("❌ Ошибка макроса"); }
+        } else {
+            const d = JSON.parse(new TextDecoder().decode(buf));
+            currentTps = d.framerate || 240;
+            macroEvents = (d.inputs || d.events).map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d }));
+        }
+        dropZone.innerText = "✅ " + f.name; dropZone.classList.add('active');
+        checkReady();
     }
 
     function checkReady() { if(audioCache.clicks.length && macroEvents.length) renderBtn.style.display = 'block'; }
 
     async function renderAudio() {
-        addLog("Рендеринг...");
+        addLog("Подготовка рендеринга...");
         pCont.style.display = 'block';
-        pBar.style.width = '0%';
+        pBar.style.width = '10%';
         
         const vol = volRange.value / 100;
         const offset = parseInt(offRange.value) / 1000;
-        const lastFrame = macroEvents[macroEvents.length-1].f;
-        const dur = (lastFrame / currentTps) + 2;
+        const dur = (macroEvents[macroEvents.length-1].f / currentTps) + 2;
         const oCtx = new OfflineAudioContext(1, 44100 * Math.max(1, Math.ceil(dur)), 44100);
         
+        // 1. Планирование (10% - 50%)
         const total = macroEvents.length;
-        
-        // Планируем звуки и обновляем прогресс-бар
         for (let i = 0; i < total; i++) {
             const ev = macroEvents[i];
             const time = (ev.f / currentTps) + offset;
@@ -218,26 +213,30 @@
                     s.start(time);
                 }
             }
-            
-            // Обновляем прогресс каждые 50 событий, чтобы не тормозить поток
-            if (i % 50 === 0 || i === total - 1) {
-                pBar.style.width = ((i / total) * 100) + '%';
-                // Небольшая пауза для UI
-                if (i % 500 === 0) await new Promise(r => setTimeout(r, 0));
+            if (i % 200 === 0) {
+                pBar.style.width = (10 + (i / total) * 40) + '%';
+                await new Promise(r => setTimeout(r, 0));
             }
         }
+
+        addLog("Рендеринг аудио (процессор)...");
+        pBar.style.width = '60%';
         
-        addLog("Финальная сборка файла...");
-        const res = await oCtx.startRendering();
-        const url = URL.createObjectURL(bufferToWav(res));
+        // 2. Реальный рендеринг (60% - 90%)
+        const renderedBuffer = await oCtx.startRendering();
+        pBar.style.width = '90%';
+        
+        addLog("Создание WAV файла...");
+        // 3. Финализация (90% - 100%)
+        const wavBlob = bufferToWav(renderedBuffer);
+        const url = URL.createObjectURL(wavBlob);
         
         pBar.style.width = '100%';
         player.src = url; download.href = url; download.download = "result.wav";
         previewArea.style.display = 'block'; 
         addLog("Готово!");
         
-        // Скрываем прогресс через секунду
-        setTimeout(() => { pCont.style.display = 'none'; }, 1000);
+        setTimeout(() => { pCont.style.display = 'none'; }, 1500);
     }
 
     function bufferToWav(ab) {
