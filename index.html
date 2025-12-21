@@ -2,30 +2,30 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>zcb3 - web</title>
+    <title>zcb3 WEB - ZIP Manual</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0d0d10; }
-        body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: #16161e; border: 1px solid #2a2a35; border-radius: 16px; padding: 30px; width: 450px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        body { background: var(--bg); color: #e1e1e1; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .container { background: #16161e; border: 1px solid #2a2a35; border-radius: 16px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
         h1 { color: var(--accent); font-size: 20px; text-align: center; text-transform: uppercase; margin-top: 0; letter-spacing: 2px; }
         
-        .bot-selector, .pack-selector { display: flex; gap: 10px; margin-bottom: 15px; }
-        .bot-btn, .pack-btn { flex: 1; padding: 10px; border: 1px solid #333; background: #000; color: #888; border-radius: 8px; cursor: pointer; font-size: 11px; transition: 0.3s; text-transform: uppercase; }
-        .bot-btn.active, .pack-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.1); }
+        .section-label { display: block; font-size: 10px; color: #666; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; }
+        
+        .upload-area { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .btn-upload { background: #1a1a24; color: #fff; border: 1px dashed #444; padding: 15px; border-radius: 10px; cursor: pointer; text-align: center; transition: 0.3s; }
+        .btn-upload:hover { border-color: var(--accent); background: #222; }
+        .btn-upload.loaded { border-style: solid; border-color: var(--accent); color: var(--accent); }
 
         .control-group { margin: 15px 0; background: #000; padding: 15px; border-radius: 8px; border: 1px solid #222; }
-        label { display: block; font-size: 10px; color: #666; margin-bottom: 8px; text-transform: uppercase; }
-        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
-        
         .status-box { margin-top: 15px; padding: 12px; background: #050505; border-radius: 5px; font-family: 'Consolas', monospace; font-size: 11px; height: 100px; overflow-y: auto; color: #00ff7f; border: 1px solid #1a1a1a; }
-        .btn { display: none; background: var(--accent); color: #000; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 10px; width: 100%; border: none; cursor: pointer; text-align: center; text-decoration: none; }
-        .val { color: var(--accent); float: right; font-weight: bold; }
+        
+        .btn-main { display: none; background: var(--accent); color: #000; padding: 15px; border-radius: 8px; font-weight: bold; margin-top: 10px; width: 100%; border: none; cursor: pointer; text-transform: uppercase; }
         
         .preview-section { margin-top: 20px; display: none; border-top: 1px solid #333; padding-top: 20px; }
-        audio { width: 100%; filter: invert(100%) hue-rotate(180deg) brightness(1.5); margin-bottom: 10px; }
-        .footer { margin-top: 25px; text-align: center; font-size: 12px; }
-        .footer a { color: #444; text-decoration: none; transition: 0.3s; }
-        .footer a:hover { color: var(--accent); }
+        audio { width: 100%; filter: invert(100%) hue-rotate(180deg); margin-bottom: 10px; }
+        
+        .footer { margin-top: 25px; text-align: center; font-size: 12px; color: #444; }
     </style>
 </head>
 <body>
@@ -33,197 +33,160 @@
 <div class="container">
     <h1>zcb3 WEB</h1>
     
-    <label>ФОРМАТ МАКРОСА:</label>
-    <div class="bot-selector">
-        <button class="bot-btn active" onclick="setBot('re3', this)">.re3 (GDH)</button>
-        <button class="bot-btn" onclick="setBot('json', this)">.json (xdBot)</button>
+    <div class="upload-area">
+        <span class="section-label">1. ЗАГРУЗИТЕ ФАЙЛЫ</span>
+        <div id="zipBtn" class="btn-upload" onclick="document.getElementById('zipInput').click()">📁 ВЫБРАТЬ ZIP (КЛИК-ПАК)</div>
+        <div id="macroBtn" class="btn-upload" onclick="document.getElementById('macroInput').click()">📝 ВЫБРАТЬ JSON (МАКРОС)</div>
     </div>
 
-    <label>ВЫБОР КЛИК-ПАКА:</label>
-    <div class="pack-selector">
-        <button class="pack-btn active" onclick="setPack('g502', this)">Logitech G502</button>
-        <button class="pack-btn" onclick="setPack('viper', this)">Viper-8K</button>
-    </div>
-
-    <div style="border: 2px dashed #3a3a45; padding: 30px; text-align: center; cursor: pointer; border-radius: 10px;" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        ВЫБРАТЬ ФАЙЛ МАКРОСА
-    </div>
-    <input type="file" id="fileInput" style="display: none;" onchange="handleFile(this.files[0])">
+    <input type="file" id="zipInput" style="display: none;" accept=".zip" onchange="handleZip(this.files[0])">
+    <input type="file" id="macroInput" style="display: none;" accept=".json" onchange="handleMacro(this.files[0])">
 
     <div class="control-group">
-        <label>ОТСТУП (OFFSET): <span class="val" id="offVal">-140 ms</span></label>
-        <input type="range" id="offsetRange" min="-500" max="500" value="-140" oninput="document.getElementById('offVal').innerText = this.value + ' ms'">
-        
-        <label style="margin-top:15px;">ГРОМКОСТЬ КЛИКОВ: <span class="val" id="volVal">100%</span></label>
-        <input type="range" id="volumeRange" min="0" max="300" value="100" oninput="document.getElementById('volVal').innerText = this.value + '%'">
+        <label class="section-label">ГРОМКОСТЬ: <span id="volVal" style="float:right; color:var(--accent)">100%</span></label>
+        <input type="range" id="volumeRange" min="0" max="300" value="100" style="width:100%; accent-color:var(--accent)" oninput="volVal.innerText=this.value+'%'">
     </div>
 
-    <div class="status-box" id="log">Инициализация...</div>
+    <div class="status-box" id="log">Ожидание файлов...</div>
 
-    <button id="renderBtn" class="btn" onclick="renderAudio()">ОБРАБОТАТЬ</button>
+    <button id="renderBtn" class="btn-main" onclick="renderAudio()">Сгенерировать звук</button>
 
     <div class="preview-section" id="previewSection">
         <audio id="audioPlayer" controls></audio>
-        <a id="downloadBtn" class="btn" style="background: #fff; display: block; color: #000;" rel="noopener">СКАЧАТЬ WAV</a>
+        <a id="downloadBtn" href="#" class="btn-main" style="display:block; background:#fff; text-decoration:none; text-align:center">Скачать результат</a>
     </div>
 
-    <div class="footer">
-        <a href="https://www.tiktok.com/@.helfzsasal?_r=1&_t=ZS-92NT7B3RCyb" target="_blank">Made by HELFZz</a>
-    </div>
+    <div class="footer">Made by HELFZz</div>
 </div>
 
 <script>
-    let botType = 're3', clickPack = 'g502', macroEvents = [], currentTps = 240;
+    let audioCache = { clicks: [], releases: [] };
+    let macroEvents = [];
+    let currentTps = 240;
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let audioCache = { clicks: [], releases: [] }, currentAudioUrl = null;
 
-    function addLog(t) { 
-        const b = document.getElementById('log'); 
-        b.innerText += `\n> ${t}`; 
-        b.scrollTop = b.scrollHeight; 
+    function addLog(t) {
+        const b = document.getElementById('log');
+        b.innerText += `\n> ${t}`;
+        b.scrollTop = b.scrollHeight;
     }
 
-    function setBot(t, el) {
-        botType = t;
-        document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        addLog("Режим изменен: " + t.toUpperCase());
-    }
-
-    function setPack(p, el) {
-        clickPack = p;
-        document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        loadSounds();
-    }
-
-    async function loadSounds() {
-        addLog("Загрузка пака: " + clickPack + "...");
+    async function handleZip(file) {
+        if (!file) return;
+        addLog(`Распаковка: ${file.name}`);
         audioCache = { clicks: [], releases: [] };
-        let path = clickPack === 'g502' ? 'clicks/g502/' : 'clicks/Viper-8K/';
-        let cp = clickPack === 'g502' ? 'alex.alexg502_Clicks_Useful_' : 'yen.viper-8k_Clicks_Useful_';
-        let rp = clickPack === 'g502' ? 'alex.alexg502_Release_Useful_' : 'yen.viper-8k_Release_Useful_';
+        
+        try {
+            const zip = await JSZip.loadAsync(file);
+            const tasks = [];
 
-        for(let i=1; i<=10; i++) {
-            try {
-                const [rc, rr] = await Promise.all([
-                    fetch(`${path}${cp}${i}.ogg`),
-                    fetch(`${path}${rp}${i}.ogg`)
-                ]);
-                if(rc.ok) audioCache.clicks.push(await audioCtx.decodeAudioData(await rc.arrayBuffer()));
-                if(rr.ok) audioCache.releases.push(await audioCtx.decodeAudioData(await rr.arrayBuffer()));
-            } catch(e) { console.warn("Не удалось загрузить индекс " + i); }
-        }
-        addLog("Звуки загружены (" + audioCache.clicks.length + " шт.)");
+            zip.forEach((path, zipEntry) => {
+                const lowPath = path.toLowerCase();
+                const isAudio = lowPath.endsWith('.ogg') || lowPath.endsWith('.wav') || lowPath.endsWith('.mp3');
+                
+                if (!zipEntry.dir && isAudio) {
+                    const isClick = lowPath.includes('click');
+                    const isRel = lowPath.includes('release');
+                    
+                    if (isClick || isRel) {
+                        const t = zipEntry.async("arraybuffer").then(async (data) => {
+                            try {
+                                const buffer = await audioCtx.decodeAudioData(data);
+                                if (isClick) audioCache.clicks.push(buffer);
+                                else audioCache.releases.push(buffer);
+                            } catch(e) { console.warn("Ошибка декодирования файла:", path); }
+                        });
+                        tasks.push(t);
+                    }
+                }
+            });
+
+            await Promise.all(tasks);
+            
+            if (audioCache.clicks.length > 0) {
+                document.getElementById('zipBtn').innerText = `✅ ПАК: ${file.name}`;
+                document.getElementById('zipBtn').classList.add('loaded');
+                addLog(`Загружено кликов: ${audioCache.clicks.length}, релизов: ${audioCache.releases.length}`);
+                checkReady();
+            } else {
+                addLog("Ошибка: В ZIP не найдены папки Clicks или Releases!");
+            }
+        } catch (e) { addLog("Ошибка при чтении ZIP архива."); }
     }
 
-    async function handleFile(f) {
-        if(!f) return;
-        const buf = await f.arrayBuffer();
-        macroEvents = [];
+    async function handleMacro(file) {
+        if (!file) return;
         try {
-            if(botType === 're3') {
-                const v = new DataView(buf);
-                currentTps = v.getFloat32(0, true);
-                let off = 20 + (v.getUint32(4, true) + v.getUint32(8, true)) * 32;
-                for(let i=0; i<v.getUint32(12, true); i++) {
-                    macroEvents.push({ f: v.getUint32(off, true), d: v.getUint8(off+4)!==0 });
-                    off += 16;
-                }
-            } else {
-                const d = JSON.parse(new TextDecoder().decode(buf));
-                currentTps = d.framerate || 240;
-                (d.inputs || d.events).forEach(i => macroEvents.push({ f: i.frame??i.f, d: i.down??i.d }));
-            }
-            addLog("Файл готов: " + f.name);
+            const text = await file.text();
+            const data = JSON.parse(text);
+            macroEvents = [];
+            currentTps = data.framerate || 240;
+            const events = data.inputs || data.events || [];
+            
+            events.forEach(e => {
+                macroEvents.push({ f: e.frame ?? e.f, d: e.down ?? e.d });
+            });
+
+            document.getElementById('macroBtn').innerText = `✅ МАКРОС: ${file.name}`;
+            document.getElementById('macroBtn').classList.add('loaded');
+            addLog(`Макрос ок! Событий: ${macroEvents.length}`);
+            checkReady();
+        } catch (e) { addLog("Ошибка: Неверный формат JSON макроса."); }
+    }
+
+    function checkReady() {
+        if (audioCache.clicks.length > 0 && macroEvents.length > 0) {
             document.getElementById('renderBtn').style.display = 'block';
-        } catch(e) { 
-            addLog("Ошибка парсинга файла!"); 
-            console.error(e);
         }
     }
 
     async function renderAudio() {
-        if(!macroEvents.length) return;
-        
-        const offset = parseInt(document.getElementById('offsetRange').value) / 1000;
-        const volMult = parseInt(document.getElementById('volumeRange').value) / 100;
-        const dur = (macroEvents[macroEvents.length-1].f / currentTps) + 1.5;
-        const sRate = 44100;
+        const vol = parseInt(document.getElementById('volumeRange').value) / 100;
+        const lastEvent = macroEvents[macroEvents.length - 1];
+        const duration = (lastEvent.f / currentTps) + 1.5;
         
         addLog("Рендеринг...");
-        const oCtx = new OfflineAudioContext(1, Math.ceil(sRate * dur), sRate);
+        const offlineCtx = new OfflineAudioContext(1, 44100 * duration, 44100);
 
         macroEvents.forEach(ev => {
-            const t = (ev.f / currentTps) + offset;
-            if(t < 0) return;
-            
+            const time = ev.f / currentTps;
             const pool = ev.d ? audioCache.clicks : audioCache.releases;
-            if(!pool.length) return;
-
-            const s = oCtx.createBufferSource();
-            s.buffer = pool[Math.floor(Math.random()*pool.length)];
             
-            const g = oCtx.createGain();
-            g.gain.value = (0.7 + Math.random()*0.3) * volMult;
-            
-            s.connect(g);
-            g.connect(oCtx.destination);
-            s.start(t);
+            if (pool && pool.length > 0) {
+                const source = offlineCtx.createBufferSource();
+                source.buffer = pool[Math.floor(Math.random() * pool.length)];
+                
+                const gain = offlineCtx.createGain();
+                gain.gain.value = (0.8 + Math.random() * 0.2) * vol;
+                
+                source.connect(gain);
+                gain.connect(offlineCtx.destination);
+                source.start(time);
+            }
         });
 
-        try {
-            const res = await oCtx.startRendering();
-            
-            if(currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
-            
-            const blob = bufferToWav(res);
-            currentAudioUrl = URL.createObjectURL(blob);
-            
-            const player = document.getElementById('audioPlayer');
-            const dlBtn = document.getElementById('downloadBtn');
-
-            player.src = currentAudioUrl;
-            dlBtn.href = currentAudioUrl;
-            // Уникальное имя файла для предотвращения кеширования браузером
-            dlBtn.download = `zcb3_render_${Math.floor(Date.now()/1000)}.wav`;
-            
-            document.getElementById('previewSection').style.display = 'block';
-            addLog("Готово! Нажмите СКАЧАТЬ.");
-        } catch(e) {
-            addLog("Ошибка рендеринга!");
-        }
-    }
-
-    // Надежная функция записи WAV
-    function bufferToWav(ab) {
-        const n = 1, len = ab.length * 2 + 44;
-        const buf = new ArrayBuffer(len), view = new DataView(buf);
-        const s = (o, str) => { for(let i=0; i<str.length; i++) view.setUint8(o+i, str.charCodeAt(i)); };
+        const renderedBuffer = await offlineCtx.startRendering();
+        const wavBlob = bufferToWav(renderedBuffer);
+        const url = URL.createObjectURL(wavBlob);
         
-        s(0, 'RIFF'); 
-        view.setUint32(4, len - 8, true); 
-        s(8, 'WAVE'); 
-        s(12, 'fmt ');
-        view.setUint32(16, 16, true); 
-        view.setUint16(20, 1, true); 
-        view.setUint16(22, n, true);
-        view.setUint32(24, 44100, true); 
-        view.setUint32(28, 44100 * 2, true); 
-        view.setUint16(32, 2, true);
-        view.setUint16(34, 16, true); 
-        s(36, 'data'); 
-        view.setUint32(40, len - 44, true);
-
-        const d = ab.getChannelData(0);
-        for(let i=0; i<d.length; i++) {
-            let val = Math.max(-1, Math.min(1, d[i]));
-            view.setInt16(44 + i*2, val < 0 ? val * 32768 : val * 32767, true);
-        }
-        return new Blob([buf], { type: 'audio/wav' });
+        document.getElementById('audioPlayer').src = url;
+        document.getElementById('downloadBtn').href = url;
+        document.getElementById('downloadBtn').download = "clicks_render.wav";
+        document.getElementById('previewSection').style.display = 'block';
+        addLog("Готово! Слушайте или скачивайте.");
     }
 
-    window.onload = loadSounds;
+    function bufferToWav(ab) {
+        const n=1, len=ab.length*2+44, b=new ArrayBuffer(len), v=new DataView(b);
+        const s=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+        s(0,'RIFF'); v.setUint32(4,len-8,true); s(8,'WAVE'); s(12,'fmt ');
+        v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,n,true);
+        v.setUint32(24,44100,true); v.setUint32(28,88200,true); v.setUint16(32,2,true);
+        v.setUint16(34,16,true); s(36,'data'); v.setUint32(40,len-44,true);
+        const d=ab.getChannelData(0);
+        for(let i=0;i<d.length;i++){let x=Math.max(-1,Math.min(1,d[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}
+        return new Blob([b], {type:'audio/wav'});
+    }
 </script>
 </body>
 </html>
