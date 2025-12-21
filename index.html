@@ -24,7 +24,8 @@
         .preview-section { margin-top: 20px; display: none; border-top: 1px solid #333; padding-top: 20px; }
         audio { width: 100%; filter: invert(100%) hue-rotate(180deg) brightness(1.5); margin-bottom: 10px; }
         .footer { margin-top: 25px; text-align: center; font-size: 12px; }
-        .footer a { color: #444; text-decoration: none; }
+        .footer a { color: #444; text-decoration: none; transition: 0.3s; }
+        .footer a:hover { color: var(--accent); }
     </style>
 </head>
 <body>
@@ -57,13 +58,13 @@
         <input type="range" id="volumeRange" min="0" max="300" value="100" oninput="document.getElementById('volVal').innerText = this.value + '%'">
     </div>
 
-    <div class="status-box" id="log">Загрузка аудио...</div>
+    <div class="status-box" id="log">Инициализация...</div>
 
     <button id="renderBtn" class="btn" onclick="renderAudio()">ОБРАБОТАТЬ</button>
 
     <div class="preview-section" id="previewSection">
         <audio id="audioPlayer" controls></audio>
-        <a id="downloadBtn" class="btn" style="background: #fff; display: block; color: #000;">СКАЧАТЬ WAV</a>
+        <a id="downloadBtn" class="btn" style="background: #fff; display: block; color: #000;" rel="noopener">СКАЧАТЬ WAV</a>
     </div>
 
     <div class="footer">
@@ -76,12 +77,17 @@
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let audioCache = { clicks: [], releases: [] }, currentAudioUrl = null;
 
-    function addLog(t) { const b = document.getElementById('log'); b.innerText += `\n> ${t}`; b.scrollTop = b.scrollHeight; }
+    function addLog(t) { 
+        const b = document.getElementById('log'); 
+        b.innerText += `\n> ${t}`; 
+        b.scrollTop = b.scrollHeight; 
+    }
 
     function setBot(t, el) {
         botType = t;
         document.querySelectorAll('.bot-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active');
+        addLog("Режим изменен: " + t.toUpperCase());
     }
 
     function setPack(p, el) {
@@ -92,7 +98,7 @@
     }
 
     async function loadSounds() {
-        addLog("Загрузка пака: " + clickPack);
+        addLog("Загрузка пака: " + clickPack + "...");
         audioCache = { clicks: [], releases: [] };
         let path = clickPack === 'g502' ? 'clicks/g502/' : 'clicks/Viper-8K/';
         let cp = clickPack === 'g502' ? 'alex.alexg502_Clicks_Useful_' : 'yen.viper-8k_Clicks_Useful_';
@@ -100,12 +106,15 @@
 
         for(let i=1; i<=10; i++) {
             try {
-                const [rc, rr] = await Promise.all([fetch(`${path}${cp}${i}.ogg`), fetch(`${path}${rp}${i}.ogg`)]);
+                const [rc, rr] = await Promise.all([
+                    fetch(`${path}${cp}${i}.ogg`),
+                    fetch(`${path}${rp}${i}.ogg`)
+                ]);
                 if(rc.ok) audioCache.clicks.push(await audioCtx.decodeAudioData(await rc.arrayBuffer()));
                 if(rr.ok) audioCache.releases.push(await audioCtx.decodeAudioData(await rr.arrayBuffer()));
-            } catch(e) {}
+            } catch(e) { console.warn("Не удалось загрузить индекс " + i); }
         }
-        addLog("Готов к работе.");
+        addLog("Звуки загружены (" + audioCache.clicks.length + " шт.)");
     }
 
     async function handleFile(f) {
@@ -126,52 +135,86 @@
                 currentTps = d.framerate || 240;
                 (d.inputs || d.events).forEach(i => macroEvents.push({ f: i.frame??i.f, d: i.down??i.d }));
             }
-            addLog("Файл загружен: " + f.name);
+            addLog("Файл готов: " + f.name);
             document.getElementById('renderBtn').style.display = 'block';
-        } catch(e) { addLog("Ошибка парсинга!"); }
+        } catch(e) { 
+            addLog("Ошибка парсинга файла!"); 
+            console.error(e);
+        }
     }
 
     async function renderAudio() {
+        if(!macroEvents.length) return;
+        
         const offset = parseInt(document.getElementById('offsetRange').value) / 1000;
         const volMult = parseInt(document.getElementById('volumeRange').value) / 100;
         const dur = (macroEvents[macroEvents.length-1].f / currentTps) + 1.5;
         const sRate = 44100;
-        const oCtx = new OfflineAudioContext(1, sRate * dur, sRate);
+        
+        addLog("Рендеринг...");
+        const oCtx = new OfflineAudioContext(1, Math.ceil(sRate * dur), sRate);
 
         macroEvents.forEach(ev => {
             const t = (ev.f / currentTps) + offset;
             if(t < 0) return;
+            
+            const pool = ev.d ? audioCache.clicks : audioCache.releases;
+            if(!pool.length) return;
+
             const s = oCtx.createBufferSource();
-            const p = ev.d ? audioCache.clicks : audioCache.releases;
-            if(!p.length) return;
-            s.buffer = p[Math.floor(Math.random()*p.length)];
+            s.buffer = pool[Math.floor(Math.random()*pool.length)];
             
             const g = oCtx.createGain();
             g.gain.value = (0.7 + Math.random()*0.3) * volMult;
             
-            s.connect(g); g.connect(oCtx.destination);
+            s.connect(g);
+            g.connect(oCtx.destination);
             s.start(t);
         });
 
-        const res = await oCtx.startRendering();
-        if(currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
-        const blob = bufferToWav(res);
-        currentAudioUrl = URL.createObjectURL(blob);
-        document.getElementById('audioPlayer').src = currentAudioUrl;
-        document.getElementById('downloadBtn').href = currentAudioUrl;
-        document.getElementById('downloadBtn').download = "render.wav";
-        document.getElementById('previewSection').style.display = 'block';
-        addLog("Рендер завершен!");
+        try {
+            const res = await oCtx.startRendering();
+            
+            if(currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+            
+            const blob = bufferToWav(res);
+            currentAudioUrl = URL.createObjectURL(blob);
+            
+            const player = document.getElementById('audioPlayer');
+            const dlBtn = document.getElementById('downloadBtn');
+
+            player.src = currentAudioUrl;
+            dlBtn.href = currentAudioUrl;
+            // Уникальное имя файла для предотвращения кеширования браузером
+            dlBtn.download = `zcb3_render_${Math.floor(Date.now()/1000)}.wav`;
+            
+            document.getElementById('previewSection').style.display = 'block';
+            addLog("Готово! Нажмите СКАЧАТЬ.");
+        } catch(e) {
+            addLog("Ошибка рендеринга!");
+        }
     }
 
+    // Надежная функция записи WAV
     function bufferToWav(ab) {
         const n = 1, len = ab.length * 2 + 44;
         const buf = new ArrayBuffer(len), view = new DataView(buf);
         const s = (o, str) => { for(let i=0; i<str.length; i++) view.setUint8(o+i, str.charCodeAt(i)); };
-        s(0, 'RIFF'); view.setUint32(4, len - 8, true); s(8, 'WAVE'); s(12, 'fmt ');
-        view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, n, true);
-        view.setUint32(24, 44100, true); view.setUint32(28, 44100 * 2, true); view.setUint16(32, 2, true);
-        view.setUint16(34, 16, true); s(36, 'data'); view.setUint32(40, len - 44, true);
+        
+        s(0, 'RIFF'); 
+        view.setUint32(4, len - 8, true); 
+        s(8, 'WAVE'); 
+        s(12, 'fmt ');
+        view.setUint32(16, 16, true); 
+        view.setUint16(20, 1, true); 
+        view.setUint16(22, n, true);
+        view.setUint32(24, 44100, true); 
+        view.setUint32(28, 44100 * 2, true); 
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true); 
+        s(36, 'data'); 
+        view.setUint32(40, len - 44, true);
+
         const d = ab.getChannelData(0);
         for(let i=0; i<d.length; i++) {
             let val = Math.max(-1, Math.min(1, d[i]));
