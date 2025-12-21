@@ -29,6 +29,10 @@
         .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
 
+        /* Стили прогресс-бара */
+        .progress-container { width: 100%; height: 6px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; border: 1px solid #1a1a1f; }
+        .progress-bar { width: 0%; height: 100%; background: var(--accent); box-shadow: 0 0 10px var(--accent); transition: width 0.1s ease; }
+
         .status-box { padding: 12px; background: #000; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
         
         .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; transition: 0.3s; }
@@ -76,6 +80,10 @@
         </div>
     </div>
 
+    <div class="progress-container" id="pCont">
+        <div class="progress-bar" id="pBar"></div>
+    </div>
+
     <div class="status-box" id="log">Ожидание...</div>
     <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать аудио</button>
 
@@ -95,20 +103,16 @@
         log.scrollTop = log.scrollHeight;
     }
 
-    // ЗАГРУЗКА ИЗ ПАПКИ CLICKS (G502, Viper-8K)
     async function loadMainPack(folder, btn) {
         document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('packSelect').value = "";
-        
         addLog(`Загрузка пака ${folder}...`);
         audioCache = { clicks: [], releases: [] };
-        
         try {
             const res = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${folder}`);
             if(!res.ok) throw new Error("Папка не найдена");
             const files = await res.json();
-            
             const tasks = files.filter(f => f.type === 'file').map(async f => {
                 const ln = f.name.toLowerCase();
                 if (ln.endsWith('.wav') || ln.endsWith('.ogg') || ln.endsWith('.mp3')) {
@@ -118,14 +122,12 @@
                     else if (ln.includes('rel')) audioCache.releases.push(buf);
                 }
             });
-            
             await Promise.all(tasks);
-            addLog(`✅ ${folder} готов! C:${audioCache.clicks.length} R:${audioCache.releases.length}`);
+            addLog(`✅ ${folder} готов!`);
             checkReady();
         } catch (e) { addLog(`❌ Ошибка загрузки: ${folder}`); }
     }
 
-    // СПИСОК ВСЕХ ZIP ПАКОВ
     async function initPacks() {
         try {
             const res = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
@@ -138,11 +140,9 @@
                 opt.innerText = opt.value.replace(/-/g, ' ').toUpperCase();
                 sel.appendChild(opt);
             });
-            addLog("Список паков обновлен");
         } catch (e) { addLog("Ошибка GitHub API"); }
     }
 
-    // ЗАГРУЗКА ZIP
     async function loadZip(id) {
         document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('active'));
         addLog(`Загрузка ZIP: ${id}...`);
@@ -192,29 +192,52 @@
 
     async function renderAudio() {
         addLog("Рендеринг...");
+        pCont.style.display = 'block';
+        pBar.style.width = '0%';
+        
         const vol = volRange.value / 100;
         const offset = parseInt(offRange.value) / 1000;
-        const dur = (macroEvents[macroEvents.length-1].f / currentTps) + 2;
+        const lastFrame = macroEvents[macroEvents.length-1].f;
+        const dur = (lastFrame / currentTps) + 2;
         const oCtx = new OfflineAudioContext(1, 44100 * Math.max(1, Math.ceil(dur)), 44100);
         
-        macroEvents.forEach(ev => {
-            const time = (ev.f / currentTps) + offset;
-            if (time < 0) return;
-            const pool = ev.d ? audioCache.clicks : audioCache.releases;
-            if (pool.length) {
-                const s = oCtx.createBufferSource();
-                s.buffer = pool[Math.floor(Math.random()*pool.length)];
-                const g = oCtx.createGain();
-                g.gain.value = (0.8 + Math.random()*0.2) * vol;
-                s.connect(g); g.connect(oCtx.destination);
-                s.start(time);
-            }
-        });
+        const total = macroEvents.length;
         
+        // Планируем звуки и обновляем прогресс-бар
+        for (let i = 0; i < total; i++) {
+            const ev = macroEvents[i];
+            const time = (ev.f / currentTps) + offset;
+            if (time >= 0) {
+                const pool = ev.d ? audioCache.clicks : audioCache.releases;
+                if (pool.length) {
+                    const s = oCtx.createBufferSource();
+                    s.buffer = pool[Math.floor(Math.random()*pool.length)];
+                    const g = oCtx.createGain();
+                    g.gain.value = (0.8 + Math.random()*0.2) * vol;
+                    s.connect(g); g.connect(oCtx.destination);
+                    s.start(time);
+                }
+            }
+            
+            // Обновляем прогресс каждые 50 событий, чтобы не тормозить поток
+            if (i % 50 === 0 || i === total - 1) {
+                pBar.style.width = ((i / total) * 100) + '%';
+                // Небольшая пауза для UI
+                if (i % 500 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+        }
+        
+        addLog("Финальная сборка файла...");
         const res = await oCtx.startRendering();
         const url = URL.createObjectURL(bufferToWav(res));
+        
+        pBar.style.width = '100%';
         player.src = url; download.href = url; download.download = "result.wav";
-        previewArea.style.display = 'block'; addLog("Готово!");
+        previewArea.style.display = 'block'; 
+        addLog("Готово!");
+        
+        // Скрываем прогресс через секунду
+        setTimeout(() => { pCont.style.display = 'none'; }, 1000);
     }
 
     function bufferToWav(ab) {
