@@ -7,34 +7,35 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
-        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
         
         .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); }
-        h1 { color: var(--accent); font-size: 24px; text-align: center; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 4px; font-weight: 900; }
+        h1 { color: var(--accent); font-size: 24px; text-align: center; text-transform: uppercase; margin: 0 0 25px 0; letter-spacing: 4px; font-weight: 900; text-shadow: 0 0 15px rgba(0,255,127,0.3); }
 
         label { display: block; font-size: 10px; color: #555; margin-bottom: 8px; text-transform: uppercase; font-weight: 800; letter-spacing: 1.5px; }
         
         .main-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 13px; }
+        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 13px; text-transform: uppercase; }
         .pack-btn:hover { border-color: var(--accent); color: #fff; }
-        .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); }
+        .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 20px rgba(0,255,127,0.1); }
 
-        select { width: 100%; background: #000; color: #aaa; border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin-bottom: 20px; outline: none; }
+        select { width: 100%; background: #000; color: #aaa; border: 1px solid var(--border); padding: 12px; border-radius: 10px; cursor: pointer; margin-bottom: 20px; outline: none; transition: 0.3s; }
 
-        .drop-zone { border: 2px dashed #222; padding: 35px; text-align: center; border-radius: 16px; cursor: pointer; color: #666; margin-bottom: 25px; transition: 0.3s; }
-        .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); }
+        .drop-zone { border: 2px dashed #222; padding: 35px; text-align: center; border-radius: 16px; cursor: pointer; color: #666; transition: 0.3s; margin-bottom: 25px; background: rgba(255,255,255,0.01); }
+        .drop-zone:hover { border-color: var(--accent); color: #fff; background: rgba(0,255,127,0.03); }
+        .drop-zone.active { border-color: var(--accent); color: var(--accent); border-style: solid; background: rgba(0,255,127,0.08); }
 
         .controls-group { background: #08080a; padding: 15px; border-radius: 12px; border: 1px solid #1a1a1f; margin-bottom: 20px; }
         .control-row { margin-bottom: 15px; }
         .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
 
-        .progress-container { width: 100%; height: 8px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; border: 1px solid #1a1a1f; }
+        .progress-container { width: 100%; height: 8px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; border: 1px solid #1a1a1f; position: relative; }
         .progress-bar { width: 0%; height: 100%; background: var(--accent); box-shadow: 0 0 15px var(--accent); transition: width 0.1s ease; }
 
-        .status-box { padding: 12px; background: #000; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
+        .status-box { padding: 12px; background: #08080a; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 25px; opacity: 0.8; }
         
-        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; transition: 0.3s; }
+        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; letter-spacing: 2px; }
 
         .preview { margin-top: 25px; display: none; border-top: 1px solid #222; padding-top: 20px; }
         audio { width: 100%; filter: invert(1) hue-rotate(180deg); margin-bottom: 15px; }
@@ -46,15 +47,15 @@
 <div class="container">
     <h1>zcb3 WEB</h1>
     
-    <label>Основные паки:</label>
+    <label>Основные паки (из /clicks/):</label>
     <div class="main-packs">
         <button class="pack-btn" onclick="loadMainPack('g502', this)">G502 Hero</button>
         <button class="pack-btn" onclick="loadMainPack('Viper-8K', this)">Viper 8K</button>
     </div>
 
-    <label>Дополнительные:</label>
+    <label>Дополнительные клики:</label>
     <select id="packSelect" onchange="loadZip(this.value)">
-        <option>Загрузка...</option>
+        <option>Загрузка списка...</option>
     </select>
 
     <label>Макрос:</label>
@@ -65,26 +66,27 @@
         <div class="control-row">
             <div class="row-header">
                 <label>Громкость:</label>
-                <span id="volValue" style="color:var(--accent); font-size:11px">100%</span>
+                <span id="volValue" style="color:var(--accent); font-size:12px">100%</span>
             </div>
             <input type="range" id="volRange" min="0" max="200" value="100" oninput="volValue.innerText = this.value + '%'">
         </div>
-        <div class="control-row">
+        <div class="control-row" style="margin-bottom:0">
             <div class="row-header">
-                <label>Оффсет:</label>
-                <span id="offValue" style="color:var(--accent); font-size:11px">-140 ms</span>
+                <label>Отступ (Offset):</label>
+                <span id="offValue" style="color:var(--accent); font-size:12px">-140 ms</span>
             </div>
             <input type="range" id="offRange" min="-500" max="500" value="-140" oninput="offValue.innerText = this.value + ' ms'">
         </div>
     </div>
 
     <div class="progress-container" id="pCont"><div class="progress-bar" id="pBar"></div></div>
-    <div class="status-box" id="log">Готов</div>
-    <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать мгновенно</button>
+
+    <div class="status-box" id="log">Готов к работе</div>
+    <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать аудио</button>
 
     <div class="preview" id="previewArea">
         <audio id="player" controls></audio>
-        <a id="download" class="dl-link" href="#">СКАЧАТЬ WAV</a>
+        <a id="download" class="dl-link" href="#">СКАЧАТЬ РЕЗУЛЬТАТ (.WAV)</a>
     </div>
 </div>
 
@@ -98,7 +100,7 @@
     async function loadMainPack(f, b) {
         document.querySelectorAll('.pack-btn').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
-        addLog(`Загрузка ${f}...`);
+        addLog(`Загрузка пака ${f}...`);
         audioCache = { clicks: [], releases: [] };
         try {
             const r = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
@@ -111,8 +113,8 @@
                     else if (name.includes('rel')) audioCache.releases.push(buf.getChannelData(0));
                 }
             }
-            addLog("✅ Пак загружен"); checkReady();
-        } catch (e) { addLog("❌ Ошибка"); }
+            addLog(`✅ ${f} готов!`); checkReady();
+        } catch (e) { addLog("❌ Ошибка загрузки"); }
     }
 
     async function initPacks() {
@@ -120,7 +122,7 @@
             const res = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
             const files = await res.json();
             const sel = document.getElementById('packSelect');
-            sel.innerHTML = '<option value="" disabled selected>Или выберите ZIP пак...</option>';
+            sel.innerHTML = '<option value="" disabled selected>Выберите из 200+ паков...</option>';
             files.filter(f => f.name.endsWith('.zip')).forEach(f => {
                 const opt = document.createElement('option');
                 opt.value = f.name.replace('.zip', '');
@@ -147,7 +149,7 @@
                 }
             });
             await Promise.all(p);
-            addLog("✅ ZIP готов"); checkReady();
+            addLog("✅ Пак готов!"); checkReady();
         } catch (e) { addLog("❌ Ошибка ZIP"); }
     }
 
@@ -171,14 +173,13 @@
     function checkReady() { if(audioCache.clicks.length && macroEvents.length) renderBtn.style.display = 'block'; }
 
     async function renderAudio() {
-        addLog("Turbo-Рендеринг...");
+        addLog("Рендеринг...");
         pCont.style.display = 'block'; pBar.style.width = '0%';
         
         const vol = volRange.value / 100;
         const offsetSamples = Math.floor((parseInt(offRange.value) / 1000) * 44100);
         const totalSamples = Math.floor((macroEvents[macroEvents.length-1].f / currentTps) * 44100) + 88200;
         
-        // Прямое создание буфера в памяти (Float32)
         const output = new Float32Array(totalSamples);
         const total = macroEvents.length;
 
@@ -191,8 +192,6 @@
             if (pool.length) {
                 const sample = pool[Math.floor(Math.random() * pool.length)];
                 const gain = (0.8 + Math.random() * 0.2) * vol;
-                
-                // Прямое микширование (самая быстрая часть)
                 for (let j = 0; j < sample.length && (startIdx + j) < output.length; j++) {
                     output[startIdx + j] += sample[j] * gain;
                 }
@@ -206,7 +205,7 @@
         addLog("Сборка WAV...");
         const blob = bufferToWavDirect(output);
         player.src = URL.createObjectURL(blob);
-        download.href = player.src; download.download = "result.wav";
+        download.href = player.src; download.download = "clicks.wav";
         pBar.style.width = '100%'; previewArea.style.display = 'block'; addLog("Готово!");
         setTimeout(() => pCont.style.display = 'none', 1000);
     }
@@ -215,21 +214,18 @@
         const buf = new ArrayBuffer(44 + f32.length * 2);
         const view = new DataView(buf);
         const s = (o, t) => { for (let i = 0; i < t.length; i++) view.setUint8(o + i, t.charCodeAt(i)); };
-        
         s(0, 'RIFF'); view.setUint32(4, 36 + f32.length * 2, true);
         s(8, 'WAVE'); s(12, 'fmt '); view.setUint32(16, 16, true);
         view.setUint16(20, 1, true); view.setUint16(22, 1, true);
         view.setUint32(24, 44100, true); view.setUint32(28, 88200, true);
         view.setUint16(32, 2, true); view.setUint16(34, 16, true);
         s(36, 'data'); view.setUint32(40, f32.length * 2, true);
-
         for (let i = 0; i < f32.length; i++) {
             let x = Math.max(-1, Math.min(1, f32[i]));
             view.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
         }
         return new Blob([buf], { type: 'audio/wav' });
     }
-
     window.onload = initPacks;
 </script>
 </body>
