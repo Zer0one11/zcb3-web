@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zcb3 WEB - True Progress</title>
+    <title>zcb3 WEB</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
@@ -29,14 +29,12 @@
         .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
 
-        /* Прогресс-бар */
-        .progress-container { width: 100%; height: 8px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; border: 1px solid #1a1a1f; position: relative; }
-        .progress-bar { width: 0%; height: 100%; background: var(--accent); box-shadow: 0 0 15px var(--accent); transition: width 0.3s ease; }
+        .progress-container { width: 100%; height: 8px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; border: 1px solid #1a1a1f; }
+        .progress-bar { width: 0%; height: 100%; background: var(--accent); box-shadow: 0 0 15px var(--accent); transition: width 0.1s ease; }
 
         .status-box { padding: 12px; background: #000; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
         
         .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; transition: 0.3s; }
-        .btn-go:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,127,0.3); }
 
         .preview { margin-top: 25px; display: none; border-top: 1px solid #222; padding-top: 20px; }
         audio { width: 100%; filter: invert(1) hue-rotate(180deg); margin-bottom: 15px; }
@@ -48,15 +46,15 @@
 <div class="container">
     <h1>zcb3 WEB</h1>
     
-    <label>Основные паки (из /clicks/):</label>
+    <label>Основные паки:</label>
     <div class="main-packs">
         <button class="pack-btn" onclick="loadMainPack('g502', this)">G502 Hero</button>
         <button class="pack-btn" onclick="loadMainPack('Viper-8K', this)">Viper 8K</button>
     </div>
 
-    <label>Дополнительные (из /packs/):</label>
+    <label>Дополнительные:</label>
     <select id="packSelect" onchange="loadZip(this.value)">
-        <option>Загрузка списка...</option>
+        <option>Загрузка...</option>
     </select>
 
     <label>Макрос:</label>
@@ -71,21 +69,18 @@
             </div>
             <input type="range" id="volRange" min="0" max="200" value="100" oninput="volValue.innerText = this.value + '%'">
         </div>
-        <div class="control-row" style="margin-bottom:0">
+        <div class="control-row">
             <div class="row-header">
-                <label>Оффсет (задержка):</label>
+                <label>Оффсет:</label>
                 <span id="offValue" style="color:var(--accent); font-size:11px">-140 ms</span>
             </div>
             <input type="range" id="offRange" min="-500" max="500" value="-140" oninput="offValue.innerText = this.value + ' ms'">
         </div>
     </div>
 
-    <div class="progress-container" id="pCont">
-        <div class="progress-bar" id="pBar"></div>
-    </div>
-
-    <div class="status-box" id="log">Ожидание...</div>
-    <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать аудио</button>
+    <div class="progress-container" id="pCont"><div class="progress-bar" id="pBar"></div></div>
+    <div class="status-box" id="log">Готов</div>
+    <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать мгновенно</button>
 
     <div class="preview" id="previewArea">
         <audio id="player" controls></audio>
@@ -98,33 +93,26 @@
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     let audioCache = { clicks: [], releases: [] }, macroEvents = [], currentTps = 240;
 
-    function addLog(m) { 
-        log.innerText = "> " + m; 
-        log.scrollTop = log.scrollHeight;
-    }
+    function addLog(m) { log.innerText = "> " + m; log.scrollTop = log.scrollHeight; }
 
-    async function loadMainPack(folder, btn) {
-        document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('packSelect').value = "";
-        addLog(`Загрузка пака ${folder}...`);
+    async function loadMainPack(f, b) {
+        document.querySelectorAll('.pack-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        addLog(`Загрузка ${f}...`);
         audioCache = { clicks: [], releases: [] };
         try {
-            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${folder}`);
-            const files = await res.json();
-            const tasks = files.filter(f => f.type === 'file').map(async f => {
-                const ln = f.name.toLowerCase();
-                if (ln.endsWith('.wav') || ln.endsWith('.ogg')) {
-                    const data = await (await fetch(f.download_url)).arrayBuffer();
-                    const buf = await ctx.decodeAudioData(data);
-                    if (ln.includes('click')) audioCache.clicks.push(buf);
-                    else if (ln.includes('rel')) audioCache.releases.push(buf);
+            const r = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
+            const files = await r.json();
+            for (const file of files) {
+                if (file.type === 'file') {
+                    const buf = await ctx.decodeAudioData(await (await fetch(file.download_url)).arrayBuffer());
+                    const name = file.name.toLowerCase();
+                    if (name.includes('click')) audioCache.clicks.push(buf.getChannelData(0));
+                    else if (name.includes('rel')) audioCache.releases.push(buf.getChannelData(0));
                 }
-            });
-            await Promise.all(tasks);
-            addLog(`✅ ${folder} готов!`);
-            checkReady();
-        } catch (e) { addLog(`❌ Ошибка загрузки`); }
+            }
+            addLog("✅ Пак загружен"); checkReady();
+        } catch (e) { addLog("❌ Ошибка"); }
     }
 
     async function initPacks() {
@@ -143,7 +131,6 @@
     }
 
     async function loadZip(id) {
-        document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('active'));
         addLog(`Загрузка ZIP: ${id}...`);
         audioCache = { clicks: [], releases: [] };
         try {
@@ -151,23 +138,20 @@
             const zip = await JSZip.loadAsync(await res.blob());
             const p = [];
             zip.forEach((path, file) => {
-                const ln = path.toLowerCase();
-                if (!file.dir && (ln.endsWith('.wav') || ln.endsWith('.ogg'))) {
+                if (!file.dir && (path.endsWith('.wav') || path.endsWith('.ogg'))) {
                     p.push(file.async("arraybuffer").then(async d => {
                         const b = await ctx.decodeAudioData(d);
-                        if (ln.includes('click')) audioCache.clicks.push(b);
-                        else if (ln.includes('rel')) audioCache.releases.push(b);
+                        if (path.toLowerCase().includes('click')) audioCache.clicks.push(b.getChannelData(0));
+                        else audioCache.releases.push(b.getChannelData(0));
                     }));
                 }
             });
             await Promise.all(p);
-            addLog("✅ ZIP пак загружен");
-            checkReady();
+            addLog("✅ ZIP готов"); checkReady();
         } catch (e) { addLog("❌ Ошибка ZIP"); }
     }
 
     async function handleMacro(f) {
-        if(!f) return;
         const buf = await f.arrayBuffer();
         if(f.name.endsWith('.re3')) {
             const v = new DataView(buf); currentTps = v.getFloat32(0, true);
@@ -181,74 +165,69 @@
             currentTps = d.framerate || 240;
             macroEvents = (d.inputs || d.events).map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d }));
         }
-        dropZone.innerText = "✅ " + f.name; dropZone.classList.add('active');
-        checkReady();
+        dropZone.innerText = "✅ " + f.name; dropZone.classList.add('active'); checkReady();
     }
 
     function checkReady() { if(audioCache.clicks.length && macroEvents.length) renderBtn.style.display = 'block'; }
 
     async function renderAudio() {
-        addLog("Подготовка рендеринга...");
-        pCont.style.display = 'block';
-        pBar.style.width = '10%';
+        addLog("Turbo-Рендеринг...");
+        pCont.style.display = 'block'; pBar.style.width = '0%';
         
         const vol = volRange.value / 100;
-        const offset = parseInt(offRange.value) / 1000;
-        const dur = (macroEvents[macroEvents.length-1].f / currentTps) + 2;
-        const oCtx = new OfflineAudioContext(1, 44100 * Math.max(1, Math.ceil(dur)), 44100);
+        const offsetSamples = Math.floor((parseInt(offRange.value) / 1000) * 44100);
+        const totalSamples = Math.floor((macroEvents[macroEvents.length-1].f / currentTps) * 44100) + 88200;
         
-        // 1. Планирование (10% - 50%)
+        // Прямое создание буфера в памяти (Float32)
+        const output = new Float32Array(totalSamples);
         const total = macroEvents.length;
+
         for (let i = 0; i < total; i++) {
             const ev = macroEvents[i];
-            const time = (ev.f / currentTps) + offset;
-            if (time >= 0) {
-                const pool = ev.d ? audioCache.clicks : audioCache.releases;
-                if (pool.length) {
-                    const s = oCtx.createBufferSource();
-                    s.buffer = pool[Math.floor(Math.random()*pool.length)];
-                    const g = oCtx.createGain();
-                    g.gain.value = (0.8 + Math.random()*0.2) * vol;
-                    s.connect(g); g.connect(oCtx.destination);
-                    s.start(time);
+            const startIdx = Math.floor((ev.f / currentTps) * 44100) + offsetSamples;
+            if (startIdx < 0) continue;
+
+            const pool = ev.d ? audioCache.clicks : audioCache.releases;
+            if (pool.length) {
+                const sample = pool[Math.floor(Math.random() * pool.length)];
+                const gain = (0.8 + Math.random() * 0.2) * vol;
+                
+                // Прямое микширование (самая быстрая часть)
+                for (let j = 0; j < sample.length && (startIdx + j) < output.length; j++) {
+                    output[startIdx + j] += sample[j] * gain;
                 }
             }
-            if (i % 200 === 0) {
-                pBar.style.width = (10 + (i / total) * 40) + '%';
+            if (i % 500 === 0) {
+                pBar.style.width = ((i / total) * 100) + '%';
                 await new Promise(r => setTimeout(r, 0));
             }
         }
 
-        addLog("Рендеринг аудио (процессор)...");
-        pBar.style.width = '60%';
-        
-        // 2. Реальный рендеринг (60% - 90%)
-        const renderedBuffer = await oCtx.startRendering();
-        pBar.style.width = '90%';
-        
-        addLog("Создание WAV файла...");
-        // 3. Финализация (90% - 100%)
-        const wavBlob = bufferToWav(renderedBuffer);
-        const url = URL.createObjectURL(wavBlob);
-        
-        pBar.style.width = '100%';
-        player.src = url; download.href = url; download.download = "result.wav";
-        previewArea.style.display = 'block'; 
-        addLog("Готово!");
-        
-        setTimeout(() => { pCont.style.display = 'none'; }, 1500);
+        addLog("Сборка WAV...");
+        const blob = bufferToWavDirect(output);
+        player.src = URL.createObjectURL(blob);
+        download.href = player.src; download.download = "result.wav";
+        pBar.style.width = '100%'; previewArea.style.display = 'block'; addLog("Готово!");
+        setTimeout(() => pCont.style.display = 'none', 1000);
     }
 
-    function bufferToWav(ab) {
-        const n=1, len=ab.length*2+44, b=new ArrayBuffer(len), v=new DataView(b);
-        const s=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
-        s(0,'RIFF'); v.setUint32(4,len-8,true); s(8,'WAVE'); s(12,'fmt ');
-        v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,n,true);
-        v.setUint32(24,44100,true); v.setUint32(28,88200,true); v.setUint16(32,2,true);
-        v.setUint16(34,16,true); s(36,'data'); v.setUint32(40,len-44,true);
-        const d=ab.getChannelData(0);
-        for(let i=0;i<d.length;i++){let x=Math.max(-1,Math.min(1,d[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}
-        return new Blob([b], {type:'audio/wav'});
+    function bufferToWavDirect(f32) {
+        const buf = new ArrayBuffer(44 + f32.length * 2);
+        const view = new DataView(buf);
+        const s = (o, t) => { for (let i = 0; i < t.length; i++) view.setUint8(o + i, t.charCodeAt(i)); };
+        
+        s(0, 'RIFF'); view.setUint32(4, 36 + f32.length * 2, true);
+        s(8, 'WAVE'); s(12, 'fmt '); view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+        view.setUint32(24, 44100, true); view.setUint32(28, 88200, true);
+        view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+        s(36, 'data'); view.setUint32(40, f32.length * 2, true);
+
+        for (let i = 0; i < f32.length; i++) {
+            let x = Math.max(-1, Math.min(1, f32[i]));
+            view.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
+        }
+        return new Blob([buf], { type: 'audio/wav' });
     }
 
     window.onload = initPacks;
