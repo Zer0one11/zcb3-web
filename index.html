@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zcb3 WEB - Master Edition</title>
+    <title>zcb3 WEB - Final Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
         body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
         .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); position: relative; }
         
-        /* Вернул белую шестеренку */
-        .settings-trigger { position: absolute; top: 25px; right: 25px; cursor: pointer; z-index: 10; width: 36px; height: 36px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .settings-trigger { position: absolute; top: 25px; right: 25px; cursor: pointer; z-index: 10; width: 36px; height: 36px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
         .settings-trigger:hover { transform: rotate(90deg); }
         .settings-trigger svg { fill: #000; width: 22px; height: 22px; }
 
@@ -22,20 +21,17 @@
         .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 13px; text-align: center; }
         .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); }
         
-        select { width: 100%; background: #1a1a20; color: #fff; border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 25px; outline: none; appearance: none; }
+        select { width: 100%; background: #1a1a20; color: #fff; border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 25px; outline: none; }
         
         .drop-zone { border: 2px dashed #333; padding: 40px; text-align: center; border-radius: 20px; cursor: pointer; color: #666; margin-bottom: 25px; transition: 0.3s; font-weight: 700; text-transform: uppercase; font-size: 11px; }
-        .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); border-style: solid; }
+        .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); }
         
         .status-box { padding: 15px; background: #08080a; border-radius: 12px; font-family: monospace; font-size: 11px; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; white-space: pre-wrap; line-height: 1.5; }
         
         .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; }
         
-        /* Модальное окно */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .modal-content { background: var(--card); border: 1px solid var(--border); padding: 30px; border-radius: 24px; width: 90%; max-width: 400px; }
-        .setting-item { margin-bottom: 20px; }
-        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
         
         .preview { margin-top: 25px; border-top: 1px solid #222; padding-top: 20px; display: none; }
         audio { width: 100%; filter: invert(1) hue-rotate(180deg); }
@@ -49,21 +45,16 @@
     </div>
     
     <h1>zcb3 WEB</h1>
-    
-    <label>Пак кликов:</label>
     <div class="main-packs">
         <button class="pack-btn" onclick="loadMainPack('g502', this)">G502 Hero</button>
         <button class="pack-btn" onclick="loadMainPack('Viper-8K', this)">Viper 8K</button>
     </div>
-
     <select id="packSelect" onchange="loadZip(this.value)"><option>Загрузка архивов...</option></select>
 
-    <label>Макрос (.re3 / .json):</label>
-    <div class="drop-zone" onclick="document.getElementById('macroInput').click()" id="dropZone">Выберите файл</div>
+    <div class="drop-zone" onclick="document.getElementById('macroInput').click()" id="dropZone">ВЫБЕРИТЕ .RE3 ИЛИ .JSON</div>
     <input type="file" id="macroInput" style="display: none;" onchange="handleMacro(this.files[0])">
 
     <div class="status-box" id="log">Система готова</div>
-    
     <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать результат</button>
 
     <div class="preview" id="previewArea">
@@ -75,29 +66,18 @@
 <div class="modal" id="settingsModal">
     <div class="modal-content">
         <span style="float:right; cursor:pointer" onclick="toggleModal(false)">✕</span>
-        <h2 style="color:var(--accent); font-size:18px; margin-top:0">НАСТРОЙКИ</h2>
-        
-        <div class="setting-item">
-            <label>Громкость: <span id="volVal" style="float:right; color:var(--accent)">100%</span></label>
-            <input type="range" id="volRange" min="0" max="200" value="100" oninput="volVal.innerText = this.value + '%'">
-        </div>
-
-        <div class="setting-item">
-            <label>Отступ (Offset): <span id="offVal" style="float:right; color:var(--accent)">-140ms</span></label>
-            <input type="range" id="offRange" min="-500" max="500" value="-140" oninput="offVal.innerText = this.value + 'ms'">
-        </div>
-
-        <div class="setting-item">
-            <label>Свой ZIP-архив:</label>
-            <button onclick="document.getElementById('zipInput').click()" style="width:100%; padding:10px; background:var(--accent); border:none; border-radius:8px; font-weight:bold; cursor:pointer">ВЫБРАТЬ ZIP</button>
-            <input type="file" id="zipInput" style="display: none;" accept=".zip" onchange="loadCustomZip(this.files[0])">
-        </div>
+        <h2 style="color:var(--accent); font-size:18px;">НАСТРОЙКИ</h2>
+        <label>Громкость: <span id="volVal" style="float:right; color:var(--accent)">100%</span></label>
+        <input type="range" id="volRange" min="0" max="200" value="100" oninput="volVal.innerText = this.value + '%'">
+        <br><br>
+        <label>Отступ: <span id="offVal" style="float:right; color:var(--accent)">-140ms</span></label>
+        <input type="range" id="offRange" min="-500" max="500" value="-140" oninput="offVal.innerText = this.value + 'ms'">
     </div>
 </div>
 
 <script>
     const REPO = "Zer0one11/zcb3-web";
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = new AudioContext();
     let audioCache = { clicks: [], releases: [] }, macroEvents = [], currentTps = 240;
 
     function addLog(m) { log.innerText = "> " + m; }
@@ -119,40 +99,38 @@
                 if (offset + 16 > buf.byteLength) break;
                 const frame = v.getUint32(offset, true);
                 const action = v.getUint8(offset + 4);
-                const pIdx = v.getUint8(offset + 5);
+                // По коду replayEngine.cpp: playerIdx — это 6-й байт (offset+5)
+                const isPlayer1 = v.getUint8(offset + 5) === 0;
                 
-                // Расширенная логика 2P
                 macroEvents.push({
                     f: frame,
                     d: action > 0,
-                    p2: (pIdx === 1 || pIdx === 2 || (action === 2))
+                    p2: !isPlayer1 // Если не Player1, значит Player2
                 });
                 offset += 16;
             }
-            // ТА САМАЯ СКЛЕЙКА: Сортируем все события по времени
+            // СОРТИРОВКА: Ключевой шаг для GDH RE3
             macroEvents.sort((a, b) => a.f - b.f);
         } else {
+            // JSON Logic...
             const d = JSON.parse(new TextDecoder().decode(buf));
             currentTps = d.framerate || 240;
             const evs = d.inputs || d.events || [];
             macroEvents = evs.map(e => ({
                 f: e.frame ?? e.f,
                 d: e.down ?? e.d,
-                p2: e.p2 === true || e['2p'] === true || e.player === 2
+                p2: e.p2 === true || e.player === 2
             })).sort((a,b) => a.f - b.f);
         }
 
         const p1 = macroEvents.filter(e => !e.p2 && e.d).length;
         const p2 = macroEvents.filter(e => e.p2 && e.d).length;
-        addLog(`АНАЛИЗ ЗАВЕРШЕН\n1P кликов: ${p1}\n2P кликов: ${p2}\nСортировка: OK`);
-        dropZone.innerText = file.name; dropZone.classList.add('active'); checkReady();
+        addLog(`АНАЛИЗ ЗАВЕРШЕН\n1P кликов: ${p1}\n2P кликов: ${p2}\nБлок-сортировка: OK`);
+        dropZone.innerText = file.name; checkReady();
     }
 
     async function renderAudio() {
-        if(!macroEvents.length) return;
-        addLog("Рендеринг...");
-        const vol = volRange.value / 100;
-        const off = Math.floor((parseInt(offRange.value) / 1000) * 44100);
+        const vol = volRange.value / 100, off = Math.floor((offRange.value / 1000) * 44100);
         const len = Math.floor((macroEvents[macroEvents.length-1].f / currentTps) * 44100) + 88200;
         const L = new Float32Array(len), R = new Float32Array(len);
 
@@ -162,8 +140,8 @@
             const pool = ev.d ? audioCache.clicks : audioCache.releases;
             if (pool.length) {
                 const s = pool[Math.floor(Math.random() * pool.length)];
-                const panL = ev.p2 ? 0.2 : 1.0; 
-                const panR = ev.p2 ? 1.0 : 0.2;
+                const panL = ev.p2 ? 0.3 : 1.0; 
+                const panR = ev.p2 ? 1.0 : 0.3;
                 for (let j = 0; j < s.length && (start + j) < len; j++) {
                     L[start+j] += s[j] * vol * panL; R[start+j] += s[j] * vol * panR;
                 }
@@ -173,7 +151,7 @@
         const wav = stereoWav(L, R);
         player.src = URL.createObjectURL(wav);
         download.href = player.src;
-        previewArea.style.display = 'block'; addLog("Готово!");
+        previewArea.style.display = 'block';
     }
 
     function stereoWav(l, r) {
@@ -196,17 +174,17 @@
     async function loadMainPack(f, b) {
         document.querySelectorAll('.pack-btn').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
-        addLog(`Загрузка пака ${f}...`);
+        addLog(`Загрузка...`);
         audioCache = { clicks: [], releases: [] };
         const r = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
         const files = await r.json();
         for (const file of files) {
             const res = await fetch(file.download_url);
             const b = await ctx.decodeAudioData(await res.arrayBuffer());
-            if (file.name.toLowerCase().includes('click')) audioCache.clicks.push(b.getChannelData(0));
-            else if (file.name.toLowerCase().includes('rel')) audioCache.releases.push(b.getChannelData(0));
+            if (file.name.includes('click')) audioCache.clicks.push(b.getChannelData(0));
+            else audioCache.releases.push(b.getChannelData(0));
         }
-        addLog(`Пак загружен`); checkReady();
+        addLog(`Готово`); checkReady();
     }
 
     function checkReady() { if(audioCache.clicks.length && macroEvents.length) renderBtn.style.display = 'block'; }
