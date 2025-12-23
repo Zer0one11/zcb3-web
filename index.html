@@ -7,150 +7,132 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
-        body { background: var(--bg); color: #fff; font-family: 'Inter', 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
         
-        .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); }
-        h1 { color: var(--accent); font-size: 24px; text-align: center; text-transform: uppercase; margin: 0 0 25px 0; letter-spacing: 4px; font-weight: 900; text-shadow: 0 0 15px rgba(0,255,127,0.3); }
+        .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); position: relative; }
+        
+        /* Кнопка настроек */
+        .settings-trigger { position: absolute; top: 25px; right: 25px; cursor: pointer; transition: 0.3s; z-index: 10; }
+        .settings-trigger:hover { transform: rotate(45deg); opacity: 0.8; }
+        .settings-icon { width: 24px; height: 24px; border: 2px solid #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .settings-icon::after { content: '⚙'; color: #fff; font-size: 16px; }
+
+        h1 { color: var(--accent); font-size: 24px; text-align: center; text-transform: uppercase; margin: 0 0 25px 0; letter-spacing: 4px; font-weight: 900; }
 
         label { display: block; font-size: 10px; color: #555; margin-bottom: 8px; text-transform: uppercase; font-weight: 800; letter-spacing: 1.5px; }
         
         .main-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 13px; text-transform: uppercase; }
-        .pack-btn:hover { border-color: var(--accent); color: #fff; }
-        .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 20px rgba(0,255,127,0.1); }
+        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 13px; }
+        .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); }
 
-        select { width: 100%; background: #000; color: #aaa; border: 1px solid var(--border); padding: 12px; border-radius: 10px; cursor: pointer; margin-bottom: 20px; outline: none; transition: 0.3s; }
+        .drop-zone { border: 2px dashed #222; padding: 35px; text-align: center; border-radius: 16px; cursor: pointer; color: #666; margin-bottom: 25px; transition: 0.3s; }
+        .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); }
 
-        .drop-zone { border: 2px dashed #222; padding: 35px; text-align: center; border-radius: 16px; cursor: pointer; color: #666; transition: 0.3s; margin-bottom: 25px; background: rgba(255,255,255,0.01); }
-        .drop-zone:hover { border-color: var(--accent); color: #fff; background: rgba(0,255,127,0.03); }
-        .drop-zone.active { border-color: var(--accent); color: var(--accent); border-style: solid; background: rgba(0,255,127,0.08); }
-
-        .controls-group { background: #08080a; padding: 15px; border-radius: 12px; border: 1px solid #1a1a1f; margin-bottom: 20px; }
-        .control-row { margin-bottom: 15px; }
-        .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
-
-        .progress-container { width: 100%; height: 8px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; border: 1px solid #1a1a1f; position: relative; }
-        .progress-bar { width: 0%; height: 100%; background: var(--accent); box-shadow: 0 0 15px var(--accent); transition: width 0.1s ease; }
-
-        .status-box { padding: 12px; background: #08080a; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 25px; opacity: 0.8; }
+        /* Модальное окно настроек */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--card); border: 1px solid var(--border); padding: 30px; border-radius: 24px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
         
-        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; letter-spacing: 2px; }
+        .close-modal { float: right; cursor: pointer; color: #555; font-size: 20px; }
+        .setting-item { margin-bottom: 20px; border-bottom: 1px solid #1a1a1f; padding-bottom: 15px; }
 
+        .docs { font-size: 11px; color: #666; line-height: 1.4; background: #000; padding: 15px; border-radius: 10px; margin-top: 15px; }
+        .docs b { color: var(--accent); }
+
+        .status-box { padding: 12px; background: #08080a; border-radius: 10px; font-family: monospace; font-size: 10px; height: 45px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
+        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; }
+
+        .progress-container { width: 100%; height: 6px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: var(--accent); transition: 0.1s; }
+
+        input[type="range"] { width: 100%; accent-color: var(--accent); }
         .preview { margin-top: 25px; display: none; border-top: 1px solid #222; padding-top: 20px; }
-        audio { width: 100%; filter: invert(1) hue-rotate(180deg); margin-bottom: 15px; }
-        .dl-link { display: block; text-align: center; color: var(--accent); text-decoration: none; font-size: 12px; font-weight: bold; border: 1px solid rgba(0,255,127,0.3); padding: 12px; border-radius: 8px; }
+        audio { width: 100%; filter: invert(1) hue-rotate(180deg); }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="settings-trigger" onclick="toggleModal(true)"><div class="settings-icon"></div></div>
     <h1>zcb3 WEB</h1>
     
-    <label>Основные паки (из /clicks/):</label>
+    <label>Основные паки:</label>
     <div class="main-packs">
         <button class="pack-btn" onclick="loadMainPack('g502', this)">G502 Hero</button>
         <button class="pack-btn" onclick="loadMainPack('Viper-8K', this)">Viper 8K</button>
     </div>
 
     <label>Дополнительные клики:</label>
-    <select id="packSelect" onchange="loadZip(this.value)">
-        <option>Загрузка списка...</option>
-    </select>
+    <select id="packSelect" onchange="loadZip(this.value)"><option>Загрузка...</option></select>
 
-    <label>Макрос:</label>
+    <label>Макрос (1P / 2P):</label>
     <div class="drop-zone" onclick="document.getElementById('macroInput').click()" id="dropZone">Выберите .json или .re3</div>
     <input type="file" id="macroInput" style="display: none;" onchange="handleMacro(this.files[0])">
 
-    <div class="controls-group">
-        <div class="control-row">
-            <div class="row-header">
-                <label>Громкость:</label>
-                <span id="volValue" style="color:var(--accent); font-size:12px">100%</span>
-            </div>
-            <input type="range" id="volRange" min="0" max="200" value="100" oninput="volValue.innerText = this.value + '%'">
-        </div>
-        <div class="control-row" style="margin-bottom:0">
-            <div class="row-header">
-                <label>Отступ (Offset):</label>
-                <span id="offValue" style="color:var(--accent); font-size:12px">-140 ms</span>
-            </div>
-            <input type="range" id="offRange" min="-500" max="500" value="-140" oninput="offValue.innerText = this.value + ' ms'">
-        </div>
-    </div>
-
     <div class="progress-container" id="pCont"><div class="progress-bar" id="pBar"></div></div>
-
-    <div class="status-box" id="log">Готов к работе</div>
+    <div class="status-box" id="log">Ожидание...</div>
     <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать аудио</button>
 
     <div class="preview" id="previewArea">
         <audio id="player" controls></audio>
-        <a id="download" class="dl-link" href="#">СКАЧАТЬ РЕЗУЛЬТАТ (.WAV)</a>
+        <a id="download" style="display:block; text-align:center; color:var(--accent); margin-top:10px; font-size:12px;" href="#">СКАЧАТЬ WAV</a>
+    </div>
+</div>
+
+<div class="modal" id="settingsModal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="toggleModal(false)">✕</span>
+        <h2 style="color:var(--accent); font-size:18px; margin-top:0">НАСТРОЙКИ</h2>
+        
+        <div class="setting-item">
+            <label>Громкость:</label>
+            <input type="range" id="volRange" min="0" max="200" value="100">
+        </div>
+
+        <div class="setting-item">
+            <label>Отступ (Offset): <span id="offVal" style="color:var(--accent)">-140ms</span></label>
+            <input type="range" id="offRange" min="-500" max="500" value="-140" oninput="offVal.innerText = this.value + 'ms'">
+        </div>
+
+        <div class="setting-item">
+            <label>Свои клики (Custom):</label>
+            <input type="file" id="customClicks" multiple accept="audio/*" style="font-size:10px">
+        </div>
+
+        <div class="docs">
+            <b>ИНСТРУКЦИЯ ПО СВОИМ КЛИКАМ:</b><br>
+            1. Нажмите "Выберите файлы" выше.<br>
+            2. Выберите сразу несколько <b>.wav</b> или <b>.mp3</b> файлов.<br>
+            3. В названии файлов 1-го игрока должно быть слово <b>click</b>.<br>
+            4. В названии релизов должно быть <b>rel</b>.<br>
+            5. Система сама применит их при рендере.
+        </div>
     </div>
 </div>
 
 <script>
-    const REPO = "Zer0one11/zcb3-web"; 
+    const REPO = "Zer0one11/zcb3-web";
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     let audioCache = { clicks: [], releases: [] }, macroEvents = [], currentTps = 240;
 
-    function addLog(m) { log.innerText = "> " + m; log.scrollTop = log.scrollHeight; }
+    function addLog(m) { log.innerText = "> " + m; }
+    function toggleModal(show) { document.getElementById('settingsModal').style.display = show ? 'flex' : 'none'; }
 
     async function loadMainPack(f, b) {
         document.querySelectorAll('.pack-btn').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
-        addLog(`Загрузка пака ${f}...`);
+        addLog(`Загрузка ${f}...`);
         audioCache = { clicks: [], releases: [] };
-        try {
-            const r = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
-            const files = await r.json();
-            for (const file of files) {
-                if (file.type === 'file') {
-                    const buf = await ctx.decodeAudioData(await (await fetch(file.download_url)).arrayBuffer());
-                    const name = file.name.toLowerCase();
-                    if (name.includes('click')) audioCache.clicks.push(buf.getChannelData(0));
-                    else if (name.includes('rel')) audioCache.releases.push(buf.getChannelData(0));
-                }
+        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
+        const files = await r.json();
+        for (const file of files) {
+            if (file.type === 'file') {
+                const buf = await ctx.decodeAudioData(await (await fetch(file.download_url)).arrayBuffer());
+                const name = file.name.toLowerCase();
+                if (name.includes('click')) audioCache.clicks.push(buf.getChannelData(0));
+                else if (name.includes('rel')) audioCache.releases.push(buf.getChannelData(0));
             }
-            addLog(`✅ ${f} готов!`); checkReady();
-        } catch (e) { addLog("❌ Ошибка загрузки"); }
-    }
-
-    async function initPacks() {
-        try {
-            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
-            const files = await res.json();
-            const sel = document.getElementById('packSelect');
-            sel.innerHTML = '<option value="" disabled selected>Выберите из 200+ паков...</option>';
-            files.filter(f => f.name.endsWith('.zip')).forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f.name.replace('.zip', '');
-                opt.innerText = opt.value.replace(/-/g, ' ').toUpperCase();
-                sel.appendChild(opt);
-            });
-        } catch (e) {}
-    }
-
-    async function loadZip(id) {
-        addLog(`Загрузка ZIP: ${id}...`);
-        audioCache = { clicks: [], releases: [] };
-        try {
-            const res = await fetch(`https://raw.githubusercontent.com/${REPO}/main/packs/${id}.zip`);
-            const zip = await JSZip.loadAsync(await res.blob());
-            const p = [];
-            zip.forEach((path, file) => {
-                if (!file.dir && (path.endsWith('.wav') || path.endsWith('.ogg'))) {
-                    p.push(file.async("arraybuffer").then(async d => {
-                        const b = await ctx.decodeAudioData(d);
-                        if (path.toLowerCase().includes('click')) audioCache.clicks.push(b.getChannelData(0));
-                        else audioCache.releases.push(b.getChannelData(0));
-                    }));
-                }
-            });
-            await Promise.all(p);
-            addLog("✅ Пак готов!"); checkReady();
-        } catch (e) { addLog("❌ Ошибка ZIP"); }
+        }
+        addLog(`✅ Пак ${f} готов`); checkReady();
     }
 
     async function handleMacro(f) {
@@ -160,71 +142,91 @@
             let o = 20 + (v.getUint32(4, true) + v.getUint32(8, true)) * 32;
             macroEvents = [];
             for(let i=0; i<v.getUint32(12, true); i++) {
-                macroEvents.push({ f: v.getUint32(o, true), d: v.getUint8(o+4)!==0 }); o += 16;
+                // Читаем фрейм, состояние и игрока (p2)
+                macroEvents.push({ f: v.getUint32(o, true), d: v.getUint8(o+4)!==0, p2: v.getUint8(o+5) > 0 }); o += 16;
             }
         } else {
             const d = JSON.parse(new TextDecoder().decode(buf));
             currentTps = d.framerate || 240;
-            macroEvents = (d.inputs || d.events).map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d }));
+            macroEvents = (d.inputs || d.events).map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d, p2: e.p2 ?? e['2p'] ?? false }));
         }
-        dropZone.innerText = "✅ " + f.name; dropZone.classList.add('active'); checkReady();
+        dropZone.innerText = "✅ " + f.name; checkReady();
     }
 
-    function checkReady() { if(audioCache.clicks.length && macroEvents.length) renderBtn.style.display = 'block'; }
-
     async function renderAudio() {
-        addLog("Рендеринг...");
-        pCont.style.display = 'block'; pBar.style.width = '0%';
-        
+        addLog("Рендеринг (2P Support)...");
+        pCont.style.display = 'block';
         const vol = volRange.value / 100;
-        const offsetSamples = Math.floor((parseInt(offRange.value) / 1000) * 44100);
+        const offset = Math.floor((parseInt(offRange.value) / 1000) * 44100);
         const totalSamples = Math.floor((macroEvents[macroEvents.length-1].f / currentTps) * 44100) + 88200;
-        
         const output = new Float32Array(totalSamples);
-        const total = macroEvents.length;
 
-        for (let i = 0; i < total; i++) {
+        for (let i = 0; i < macroEvents.length; i++) {
             const ev = macroEvents[i];
-            const startIdx = Math.floor((ev.f / currentTps) * 44100) + offsetSamples;
+            const startIdx = Math.floor((ev.f / currentTps) * 44100) + offset;
             if (startIdx < 0) continue;
 
             const pool = ev.d ? audioCache.clicks : audioCache.releases;
             if (pool.length) {
                 const sample = pool[Math.floor(Math.random() * pool.length)];
-                const gain = (0.8 + Math.random() * 0.2) * vol;
+                // Для 2-го игрока меняем громкость и немного смещаем "тон" (пропуская сэмплы)
+                const isP2 = ev.p2;
+                const gain = (0.8 + Math.random() * 0.2) * vol * (isP2 ? 0.7 : 1.0);
+                
                 for (let j = 0; j < sample.length && (startIdx + j) < output.length; j++) {
                     output[startIdx + j] += sample[j] * gain;
                 }
             }
-            if (i % 500 === 0) {
-                pBar.style.width = ((i / total) * 100) + '%';
-                await new Promise(r => setTimeout(r, 0));
-            }
+            if (i % 400 === 0) pBar.style.width = ((i / macroEvents.length) * 100) + '%';
         }
 
-        addLog("Сборка WAV...");
-        const blob = bufferToWavDirect(output);
+        const blob = bufferToWav(output);
         player.src = URL.createObjectURL(blob);
-        download.href = player.src; download.download = "clicks.wav";
-        pBar.style.width = '100%'; previewArea.style.display = 'block'; addLog("Готово!");
-        setTimeout(() => pCont.style.display = 'none', 1000);
+        download.href = player.src; download.download = "result_2p.wav";
+        previewArea.style.display = 'block'; pBar.style.width = '100%'; addLog("Готово!");
     }
 
-    function bufferToWavDirect(f32) {
-        const buf = new ArrayBuffer(44 + f32.length * 2);
-        const view = new DataView(buf);
-        const s = (o, t) => { for (let i = 0; i < t.length; i++) view.setUint8(o + i, t.charCodeAt(i)); };
-        s(0, 'RIFF'); view.setUint32(4, 36 + f32.length * 2, true);
-        s(8, 'WAVE'); s(12, 'fmt '); view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-        view.setUint32(24, 44100, true); view.setUint32(28, 88200, true);
-        view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-        s(36, 'data'); view.setUint32(40, f32.length * 2, true);
+    function bufferToWav(f32) {
+        const b = new ArrayBuffer(44 + f32.length * 2);
+        const v = new DataView(b);
+        const s = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+        s(0, 'RIFF'); v.setUint32(4, 36 + f32.length * 2, true);
+        s(8, 'WAVE'); s(12, 'fmt '); v.setUint32(16, 16, true);
+        v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+        v.setUint32(24, 44100, true); v.setUint32(28, 88200, true);
+        v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+        s(36, 'data'); v.setUint32(40, f32.length * 2, true);
         for (let i = 0; i < f32.length; i++) {
             let x = Math.max(-1, Math.min(1, f32[i]));
-            view.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
+            v.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
         }
-        return new Blob([buf], { type: 'audio/wav' });
+        return new Blob([b], { type: 'audio/wav' });
+    }
+
+    // Загрузка пользовательских кликов
+    document.getElementById('customClicks').onchange = async function(e) {
+        addLog("Загрузка ваших звуков...");
+        audioCache = { clicks: [], releases: [] };
+        for (let file of e.target.files) {
+            const buf = await ctx.decodeAudioData(await file.arrayBuffer());
+            if (file.name.toLowerCase().includes('click')) audioCache.clicks.push(buf.getChannelData(0));
+            else if (file.name.toLowerCase().includes('rel')) audioCache.releases.push(buf.getChannelData(0));
+        }
+        addLog(`✅ Свои звуки загружены!`); checkReady();
+    };
+
+    function checkReady() { if(audioCache.clicks.length && macroEvents.length) renderBtn.style.display = 'block'; }
+    async function initPacks() {
+        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
+        const files = await r.json();
+        const sel = document.getElementById('packSelect');
+        sel.innerHTML = '<option value="" disabled selected>Выберите пак...</option>';
+        files.filter(f => f.name.endsWith('.zip')).forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.name.replace('.zip', '');
+            opt.innerText = opt.value.toUpperCase();
+            sel.appendChild(opt);
+        });
     }
     window.onload = initPacks;
 </script>
