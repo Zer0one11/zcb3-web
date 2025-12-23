@@ -3,41 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zcb3 WEB - Final RE3 Fix</title>
+    <title>zcb3 WEB - 2P Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
         body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
-        
         .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); position: relative; }
-        
-        .settings-trigger { position: absolute; top: 25px; right: 25px; cursor: pointer; z-index: 10; width: 36px; height: 36px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .settings-trigger { position: absolute; top: 25px; right: 25px; cursor: pointer; z-index: 10; width: 36px; height: 36px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
         .settings-trigger:hover { transform: rotate(90deg); }
         .settings-trigger svg { fill: #000; width: 22px; height: 22px; }
-
         h1 { color: var(--accent); font-size: 24px; text-align: center; text-transform: uppercase; margin: 0 0 25px 0; letter-spacing: 4px; font-weight: 900; }
         label { display: block; font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; font-weight: 800; letter-spacing: 1.5px; }
-        
         .main-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 13px; text-align: center; }
         .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); }
-
         select { width: 100%; background: #1a1a20; color: #fff; border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 25px; outline: none; }
-
         .drop-zone { border: 2px dashed #333; padding: 40px; text-align: center; border-radius: 20px; cursor: pointer; color: #666; margin-bottom: 25px; transition: 0.3s; font-weight: 700; text-transform: uppercase; font-size: 11px; }
         .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); border-style: solid; }
-
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .modal-content { background: var(--card); border: 1px solid var(--border); padding: 30px; border-radius: 24px; width: 90%; max-width: 400px; }
-        .val-text { color: var(--accent); float: right; }
-        .file-btn-alt { background: var(--accent); color: #000; padding: 12px; border-radius: 10px; text-align: center; font-weight: 800; cursor: pointer; margin-top: 10px; text-transform: uppercase; font-size: 11px; }
-
-        .status-box { padding: 15px; background: #08080a; border-radius: 12px; font-family: monospace; font-size: 11px; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; min-height: 20px; }
+        .status-box { padding: 15px; background: #08080a; border-radius: 12px; font-family: monospace; font-size: 11px; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; white-space: pre-wrap; line-height: 1.4; }
         .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; }
-
         .progress-container { width: 100%; height: 6px; background: #000; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; }
         .progress-bar { width: 0%; height: 100%; background: var(--accent); }
-
         input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
         .preview { margin-top: 25px; border-top: 1px solid #222; padding-top: 20px; display: none; }
         audio { width: 100%; filter: invert(1) hue-rotate(180deg); }
@@ -59,10 +47,10 @@
     </div>
 
     <label>Дополнительные клики:</label>
-    <select id="packSelect" onchange="loadZip(this.value)"><option>Загрузка списка...</option></select>
+    <select id="packSelect" onchange="loadZip(this.value)"><option>Загрузка...</option></select>
 
     <label>Макрос (1P / 2P):</label>
-    <div class="drop-zone" onclick="document.getElementById('macroInput').click()" id="dropZone">Нажмите, чтобы выбрать .json или .re3</div>
+    <div class="drop-zone" onclick="document.getElementById('macroInput').click()" id="dropZone">Нажмите для выбора .json или .re3</div>
     <input type="file" id="macroInput" style="display: none;" onchange="handleMacro(this.files[0])">
 
     <div class="progress-container" id="pCont"><div class="progress-bar" id="pBar"></div></div>
@@ -79,20 +67,17 @@
     <div class="modal-content">
         <span style="float:right; cursor:pointer" onclick="toggleModal(false)">✕</span>
         <h2 style="color:var(--accent); font-size:18px; margin-top:0">НАСТРОЙКИ</h2>
-        
         <div class="setting-item">
             <label>Громкость: <span id="volVal" class="val-text">100%</span></label>
             <input type="range" id="volRange" min="0" max="200" value="100" oninput="volVal.innerText = this.value + '%'">
         </div>
-
         <div class="setting-item">
             <label>Отступ (Offset): <span id="offVal" class="val-text">-140ms</span></label>
             <input type="range" id="offRange" min="-500" max="500" value="-140" oninput="offVal.innerText = this.value + 'ms'">
         </div>
-
         <div class="setting-item">
             <label>Свои клики (ZIP):</label>
-            <div class="file-btn-alt" onclick="document.getElementById('zipInput').click()">Выбрать .zip архив</div>
+            <div style="background:var(--accent); color:#000; padding:12px; border-radius:10px; text-align:center; font-weight:800; cursor:pointer; margin-top:10px; text-transform:uppercase; font-size:11px;" onclick="document.getElementById('zipInput').click()">Выбрать .zip архив</div>
             <input type="file" id="zipInput" style="display: none;" accept=".zip" onchange="loadCustomZip(this.files[0])">
         </div>
     </div>
@@ -106,61 +91,62 @@
     function addLog(m) { log.innerText = "> " + m; }
     function toggleModal(s) { document.getElementById('settingsModal').style.display = s ? 'flex' : 'none'; }
 
-    async function loadMainPack(f, b) {
-        document.querySelectorAll('.pack-btn').forEach(x => x.classList.remove('active'));
-        b.classList.add('active');
-        addLog(`Загрузка ${f}...`);
-        audioCache = { clicks: [], releases: [] };
-        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
-        const files = await r.json();
-        for (const file of files) {
-            const buf = await ctx.decodeAudioData(await (await fetch(file.download_url)).arrayBuffer());
-            if (file.name.toLowerCase().includes('click')) audioCache.clicks.push(buf.getChannelData(0));
-            else if (file.name.toLowerCase().includes('rel')) audioCache.releases.push(buf.getChannelData(0));
-        }
-        addLog(`✅ Пак ${f} загружен`); checkReady();
-    }
-
     async function handleMacro(f) {
         const buf = await f.arrayBuffer();
+        macroEvents = [];
+        const v = new DataView(buf);
+
         if(f.name.endsWith('.re3')) {
-            const v = new DataView(buf); 
             currentTps = v.getFloat32(0, true);
+            const p1DataLen = v.getUint32(4, true);
+            const p2DataLen = v.getUint32(8, true);
+            const totalEvents = v.getUint32(12, true);
             
-            // Новая логика поиска событий в RE3
-            const p1Size = v.getUint32(4, true);
-            const p2Size = v.getUint32(8, true);
-            const eventCount = v.getUint32(12, true);
-            
-            // Смещение до начала событий (заголовок 20 байт + данные позиций игроков)
-            let offset = 20 + (p1Size + p2Size) * 32;
-            macroEvents = [];
-            
-            for(let i=0; i<eventCount; i++) {
+            let offset = 20 + (p1DataLen + p2DataLen) * 32;
+
+            for(let i=0; i < totalEvents; i++) {
                 if (offset + 16 > buf.byteLength) break;
                 const frame = v.getUint32(offset, true);
-                const isDown = v.getUint8(offset + 4) !== 0;
-                const isP2 = v.getUint8(offset + 5) !== 0; // Флаг игрока
-                
-                macroEvents.push({ f: frame, d: isDown, p2: isP2 });
+                const action = v.getUint8(offset + 4); // 0 = up, 1+ = down
+                const playerFlag = v.getUint8(offset + 5); // Обычно 0 или 1
+                const altFlag = v.getUint8(offset + 6); // В некоторых версиях здесь 2P
+
+                macroEvents.push({ 
+                    f: frame, 
+                    d: action !== 0, 
+                    p2: playerFlag === 1 || playerFlag === 2 || altFlag === 1 || altFlag === 2 
+                });
                 offset += 16;
             }
-            addLog(`✅ RE3: ${macroEvents.length} событий`);
         } else {
             const d = JSON.parse(new TextDecoder().decode(buf));
             currentTps = d.framerate || 240;
-            macroEvents = (d.inputs || d.events).map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d, p2: e.p2 === true || e['2p'] === true }));
-            addLog(`✅ JSON: ${macroEvents.length} событий`);
+            const evs = d.inputs || d.events || [];
+            macroEvents = evs.map(e => ({
+                f: e.frame ?? e.f,
+                d: e.down ?? e.d,
+                p2: e.p2 === true || e['2p'] === true || e.player === 2
+            }));
         }
-        dropZone.innerText = "Файл выбран: " + f.name; checkReady();
+
+        const p1Count = macroEvents.filter(e => !e.p2 && e.d).length;
+        const p2Count = macroEvents.filter(e => e.p2 && e.d).length;
+        addLog(`АНАЛИЗ ЗАВЕРШЕН\nФайл: ${f.name}\nPlayer 1 кликов: ${p1Count}\nPlayer 2 кликов: ${p2Count}`);
+        
+        if (p2Count === 0 && macroEvents.length > 100) {
+            addLog(`\nПредупреждение: 2P клики не найдены.\nВозможно, это соло-макрос.`);
+        }
+        
+        dropZone.innerText = f.name; checkReady();
     }
 
     async function renderAudio() {
-        if (!macroEvents.length) return;
-        addLog("Рендеринг..."); pCont.style.display = 'block';
+        if(!macroEvents.length) return;
+        addLog("Рендеринг стерео-сцены..."); pCont.style.display = 'block';
         const vol = volRange.value / 100;
         const off = Math.floor((parseInt(offRange.value) / 1000) * 44100);
-        const totalSamples = Math.floor((macroEvents[macroEvents.length-1].f / currentTps) * 44100) + 88200;
+        const lastFrame = macroEvents[macroEvents.length - 1].f;
+        const totalSamples = Math.floor((lastFrame / currentTps) * 44100) + 88200;
         
         const L = new Float32Array(totalSamples);
         const R = new Float32Array(totalSamples);
@@ -175,22 +161,22 @@
                 const s = pool[Math.floor(Math.random() * pool.length)];
                 const gain = (0.8 + Math.random() * 0.2) * vol;
                 
-                // Стерео-панорама для разделения игроков
-                const pL = ev.p2 ? 0.35 : 1.0; 
-                const pR = ev.p2 ? 1.0 : 0.35;
+                // СТЕРЕО ПАНОРАМА: 1P (Лево 100%, Право 20%), 2P (Лево 20%, Право 100%)
+                const panL = ev.p2 ? 0.2 : 1.0; 
+                const panR = ev.p2 ? 1.0 : 0.2;
 
                 for (let j = 0; j < s.length && (startIdx + j) < totalSamples; j++) {
-                    L[startIdx + j] += s[j] * gain * pL;
-                    R[startIdx + j] += s[j] * gain * pR;
+                    L[startIdx + j] += s[j] * gain * panL;
+                    R[startIdx + j] += s[j] * gain * panR;
                 }
             }
             if (i % 500 === 0) pBar.style.width = ((i / macroEvents.length) * 100) + '%';
         }
         
-        const wav = stereoWav(L, R);
-        player.src = URL.createObjectURL(wav);
+        const wavBlob = stereoWav(L, R);
+        player.src = URL.createObjectURL(wavBlob);
         download.href = player.src;
-        pBar.style.width = '100%'; previewArea.style.display = 'block'; addLog("Готово!");
+        pBar.style.width = '100%'; previewArea.style.display = 'block'; addLog("Готово! Слушайте результат.");
     }
 
     function stereoWav(l, r) {
@@ -210,21 +196,33 @@
         return new Blob([b], { type: 'audio/wav' });
     }
 
+    async function loadMainPack(f, b) {
+        document.querySelectorAll('.pack-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        addLog(`Загрузка ${f}...`);
+        audioCache = { clicks: [], releases: [] };
+        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
+        const files = await r.json();
+        for (const file of files) {
+            const buf = await ctx.decodeAudioData(await (await fetch(file.download_url)).arrayBuffer());
+            if (file.name.toLowerCase().includes('click')) audioCache.clicks.push(buf.getChannelData(0));
+            else if (file.name.toLowerCase().includes('rel')) audioCache.releases.push(buf.getChannelData(0));
+        }
+        addLog(`✅ Пакет ${f} загружен`); checkReady();
+    }
+
     function checkReady() { if(audioCache.clicks.length && macroEvents.length) renderBtn.style.display = 'block'; }
-    
     async function initPacks() {
-        try {
-            const r = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
-            const files = await r.json();
-            const sel = document.getElementById('packSelect');
-            sel.innerHTML = '<option value="" disabled selected>Или выберите ZIP...</option>';
-            files.filter(f => f.name.endsWith('.zip')).forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f.name.replace('.zip', '');
-                opt.innerText = opt.value.toUpperCase();
-                sel.appendChild(opt);
-            });
-        } catch(e) {}
+        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
+        const files = await r.json();
+        const sel = document.getElementById('packSelect');
+        sel.innerHTML = '<option value="" disabled selected>Или выберите ZIP пак...</option>';
+        files.filter(f => f.name.endsWith('.zip')).forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.name.replace('.zip', '');
+            opt.innerText = opt.value.toUpperCase();
+            sel.appendChild(opt);
+        });
     }
     window.onload = initPacks;
 </script>
