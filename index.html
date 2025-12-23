@@ -3,86 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>zcb3 WEB v12.5</title>
+    <title>zcb3 WEB v10.0 - Clean</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
-        body { background: var(--bg); color: #fff; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px; width: 100%; max-width: 450px; box-sizing: border-box; position: relative; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px; width: 100%; max-width: 450px; box-sizing: border-box; }
         
-        .icon-btn { position: absolute; top: 15px; width: 40px; height: 40px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 5; }
-        .converter-trigger { left: 15px; }
-        .settings-trigger { right: 15px; }
-        .icon-btn svg { fill: #000; width: 22px; height: 22px; }
-
-        h1 { color: var(--accent); text-align: center; font-size: 20px; letter-spacing: 2px; margin: 40px 0 20px 0; text-transform: uppercase; }
+        h1 { color: var(--accent); text-align: center; font-size: 24px; letter-spacing: 2px; margin: 0 0 25px 0; font-weight: 900; }
         
-        .pack-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; }
+        .pack-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 14px; font-weight: bold; cursor: pointer; }
         .pack-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.1); }
         
-        select, .btn-main { width: 100%; background: #1a1a20; color: #fff; border: 1px solid var(--border); padding: 14px; border-radius: 12px; margin-bottom: 15px; font-size: 14px; outline: none; }
+        select { width: 100%; background: #1a1a20; color: #fff; border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 20px; outline: none; }
         
-        .drop-zone { border: 2px dashed #333; padding: 30px 10px; text-align: center; border-radius: 15px; color: #666; font-size: 13px; margin-bottom: 15px; transition: 0.2s; }
+        .drop-zone { border: 2px dashed #333; padding: 40px 10px; text-align: center; border-radius: 20px; color: #666; font-size: 14px; margin-bottom: 20px; cursor: pointer; }
         .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); }
         
-        .status-box { background: #000; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 11px; color: var(--accent); min-height: 50px; border: 1px solid #1a1a1f; margin-bottom: 15px; white-space: pre-wrap; }
+        .status-box { background: #000; padding: 15px; border-radius: 15px; font-family: monospace; font-size: 12px; color: var(--accent); min-height: 50px; border: 1px solid #1a1a1f; margin-bottom: 20px; white-space: pre-wrap; }
         
-        .btn-render { width: 100%; background: var(--accent); color: #000; padding: 18px; border-radius: 15px; font-weight: 900; border: none; display: none; font-size: 15px; }
+        .btn-render { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 18px; font-weight: 900; border: none; display: none; text-transform: uppercase; font-size: 16px; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-        .modal-content { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 25px; width: 100%; max-width: 400px; }
+        .custom-link { text-align: center; color: #555; font-size: 12px; margin-top: 15px; text-decoration: underline; cursor: pointer; display: block; }
         
-        audio { width: 100%; filter: invert(1); margin-top: 10px; }
+        .preview { margin-top: 25px; display: none; }
+        audio { width: 100%; filter: invert(1); }
+        input[type="file"] { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="icon-btn converter-trigger" onclick="toggleModal('convMod', true)"><svg viewBox="0 0 24 24"><path d="M12,18L8,14H11V7H13V14H16L12,18M20,2H4A2,2 0 0,0 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z"/></svg></div>
-    <div class="icon-btn settings-trigger" onclick="toggleModal('setMod', true)"><svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.97 19.05,5.05L16.56,6.05C16.04,5.65 15.48,5.32 14.87,5.07L14.49,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.51,2.42L9.13,5.07C8.52,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.97 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.95C7.96,18.34 8.52,18.68 9.13,18.93L9.51,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.49,21.58L14.87,18.93C15.48,18.67 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg></div>
-    
-    <h1>zcb3 WEB v12.5</h1>
+    <h1>zcb3 WEB</h1>
 
     <div class="pack-grid">
-        <button class="pack-btn" onclick="loadMainPack('g502', this)">Logitech G502</button>
+        <button class="pack-btn" onclick="loadMainPack('g502', this)">G502 Hero</button>
         <button class="pack-btn" onclick="loadMainPack('Viper-8K', this)">Razer Viper</button>
     </div>
 
-    <select id="packSelect" onchange="loadZipPack(this.value)"><option>Загрузка облака...</option></select>
+    <select id="packSelect" onchange="loadZipPack(this.value)"><option>Выберите ZIP из облака...</option></select>
 
-    <div class="drop-zone" onclick="document.getElementById('mInp').click()" id="dZone">ВЫБЕРИТЕ МАКРОС (.RE3 / .JSON)</div>
-    <input type="file" id="mInp" style="display: none;" onchange="handleMacro(this.files[0])">
+    <div class="drop-zone" onclick="document.getElementById('macroInp').click()" id="dZone">ВЫБРАТЬ МАКРОС (.RE3 / .JSON)</div>
+    <input type="file" id="macroInp" onchange="handleMacro(this.files[0])">
 
-    <div class="status-box" id="log">Система готова</div>
-    <button id="rBtn" class="btn-render" onclick="render()">СОБРАТЬ АУДИО</button>
+    <div class="status-box" id="log">Ожидание...</div>
+    
+    <button id="rBtn" class="btn-render" onclick="render()">СГЕНЕРИРОВАТЬ WAV</button>
 
-    <div id="pArea" style="display:none; margin-top:20px;">
+    <div id="pArea" class="preview">
         <audio id="aud" controls></audio>
-        <a id="dl" style="display:block; text-align:center; color:var(--accent); margin-top:10px; font-weight:bold; text-decoration:none;">СКАЧАТЬ WAV</a>
+        <a id="dl" style="display:block; text-align:center; color:var(--accent); margin-top:15px; font-weight:bold; text-decoration:none;">СКАЧАТЬ WAV</a>
     </div>
-</div>
 
-<div class="modal" id="convMod">
-    <div class="modal-content">
-        <h3 style="margin-top:0; color:var(--accent);">CONVERTER</h3>
-        <label style="font-size:12px; color:#666;">РЕЖИМ:</label>
-        <select id="cMode" class="btn-main"><option value="j2r">JSON → RE3</option><option value="r2j">RE3 → JSON</option></select>
-        <input type="file" id="cFile" class="btn-main">
-        <button onclick="convert()" style="width:100%; padding:15px; background:var(--accent); border:none; border-radius:12px; font-weight:bold;">НАЧАТЬ</button>
-        <button onclick="toggleModal('convMod', false)" style="width:100%; background:none; color:#555; border:none; margin-top:10px;">ОТМЕНА</button>
-    </div>
-</div>
-
-<div class="modal" id="setMod">
-    <div class="modal-content">
-        <h3 style="margin-top:0; color:var(--accent);">SETTINGS</h3>
-        <label>Громкость: <input type="range" id="vol" min="0" max="200" value="100" style="width:100%;"></label><br><br>
-        <label>Офсет (ms): <input type="range" id="off" min="-500" max="500" value="-140" style="width:100%;"></label><br><br>
-        <p style="font-size:12px; color:#666;">ВАШ ZIP-ПАК:</p>
-        <input type="file" id="zInp" accept=".zip" onchange="loadCustomZip(this.files[0])">
-        <button onclick="toggleModal('setMod', false)" style="width:100%; background:var(--accent); border:none; padding:15px; border-radius:12px; font-weight:bold;">СОХРАНИТЬ</button>
-    </div>
+    <span class="custom-link" onclick="document.getElementById('customZip').click()">Загрузить свой ZIP с телефона</span>
+    <input type="file" id="customZip" accept=".zip" onchange="loadCustomZip(this.files[0])">
 </div>
 
 <script>
@@ -90,39 +65,42 @@
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     let audioCache = { clicks: [], releases: [] }, macro = [], fps = 240;
 
-    function addLog(m) { log.innerText = "> " + m; }
-    function toggleModal(id, s) { document.getElementById(id).style.display = s ? 'flex' : 'none'; }
+    const clickKeys = ['clicks', 'click'];
+    const releaseKeys = ['releases', 'release'];
 
-    // ИСПРАВЛЕННЫЙ ЗАГРУЗЧИК ZIP
+    function addLog(m) { log.innerText = "> " + m; }
+
     async function loadCustomZip(file) {
         if(!file) return;
-        addLog("Распаковка архива...");
+        addLog("Распаковка ZIP...");
         audioCache = { clicks: [], releases: [] };
         try {
             const zip = await JSZip.loadAsync(file);
-            const loadPromises = [];
+            const promises = [];
             
             zip.forEach((path, entry) => {
                 if(!entry.dir && path.toLowerCase().endsWith('.wav')) {
                     const p = entry.async("arraybuffer").then(async (ab) => {
                         const buffer = await ctx.decodeAudioData(ab);
                         const lowPath = path.toLowerCase();
-                        // Поиск по ключевым словам в пути
-                        if (lowPath.includes('click')) audioCache.clicks.push(buffer.getChannelData(0));
-                        else if (lowPath.includes('rel')) audioCache.releases.push(buffer.getChannelData(0));
-                    }).catch(e => console.error("Ошибка файла:", path));
-                    loadPromises.push(p);
+                        
+                        // Проверка по списку слов
+                        const isClick = clickKeys.some(key => lowPath.includes(key));
+                        const isRelease = releaseKeys.some(key => lowPath.includes(key));
+
+                        if (isClick) audioCache.clicks.push(buffer.getChannelData(0));
+                        else if (isRelease) audioCache.releases.push(buffer.getChannelData(0));
+                    });
+                    promises.push(p);
                 }
             });
 
-            await Promise.all(loadPromises);
+            await Promise.all(promises);
             addLog(`Загружено:\nКликов: ${audioCache.clicks.length}\nРелизов: ${audioCache.releases.length}`);
-            if(audioCache.clicks.length > 0) check();
-            else addLog("⚠️ ОШИБКА: WAV файлы не найдены в папках 'Click'!");
-        } catch(e) { addLog("Ошибка: " + e.message); }
+            checkReady();
+        } catch(e) { addLog("Ошибка ZIP: " + e.message); }
     }
 
-    // ИСПРАВЛЕННЫЙ ПАРСЕР RE3 (0 прыжков фикс)
     async function handleMacro(file) {
         if(!file) return;
         addLog("Чтение макроса...");
@@ -130,71 +108,33 @@
         const v = new DataView(buf);
         macro = [];
 
-        try {
-            if(file.name.toLowerCase().endsWith('.re3')) {
-                fps = v.getFloat32(0, true);
-                const p1Phys = v.getUint32(4, true);
-                const p2Phys = v.getUint32(8, true);
-                const totalInp = v.getUint32(12, true);
-
-                // Смещение: Заголовок(20 байт) + Блок физики(размер структуры replay_data * кол-во)
-                // Структура replay_data в твоем коде = 32 байта
-                let offset = 20 + (p1Phys + p2Phys) * 32;
-
-                for(let i=0; i<totalInp; i++) {
-                    if(offset + 16 > buf.byteLength) break;
-                    macro.push({
-                        f: v.getUint32(offset, true),
-                        d: v.getUint8(offset + 4) > 0,
-                        p2: v.getUint8(offset + 5) !== 0
-                    });
-                    offset += 16; // replay_data2 = 16 байт
-                }
-            } else {
-                const d = JSON.parse(new TextDecoder().decode(buf));
-                fps = d.framerate || 240;
-                const evs = d.inputs || d.events || [];
-                macro = evs.map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d, p2: e.p2 || e.player === 2 }));
+        if(file.name.toLowerCase().endsWith('.re3')) {
+            fps = v.getFloat32(0, true);
+            const p1P = v.getUint32(4, true), p2P = v.getUint32(8, true), total = v.getUint32(12, true);
+            let offset = 20 + (p1P + p2P) * 32;
+            for(let i=0; i<total; i++) {
+                if(offset + 16 > buf.byteLength) break;
+                macro.push({ f: v.getUint32(offset, true), d: v.getUint8(offset + 4) > 0, p2: v.getUint8(offset + 5) !== 0 });
+                offset += 16;
             }
-            macro.sort((a,b) => a.f - b.f);
-            addLog(`Макрос загружен!\nСобытий: ${macro.length}\nFPS: ${fps}`);
-            dZone.innerText = file.name;
-            check();
-        } catch(e) { addLog("Ошибка макроса: " + e.message); }
-    }
-
-    async function convert() {
-        const f = cFile.files[0]; if(!f) return;
-        const mode = cMode.value;
-        if(mode === 'j2r') {
-            const d = JSON.parse(await f.text());
+        } else {
+            const d = JSON.parse(new TextDecoder().decode(buf));
+            fps = d.framerate || 240;
             const evs = d.inputs || d.events || [];
-            const p1 = evs.filter(e => !(e.p2 || e.player === 2));
-            const p2 = evs.filter(e => (e.p2 || e.player === 2));
-            
-            // Создаем пустой блок физики, чтобы бот не тупил
-            const buf = new ArrayBuffer(20 + (evs.length * 16));
-            const v = new DataView(buf);
-            v.setFloat32(0, d.framerate || 240, true);
-            v.setUint32(4, 0, true); // p1 phys
-            v.setUint32(8, 0, true); // p2 phys
-            v.setUint32(12, evs.length, true);
-            
-            evs.forEach((e, i) => {
-                const off = 20 + (i * 16);
-                v.setUint32(off, e.frame || e.f, true);
-                v.setUint8(off + 4, (e.down || e.d) ? 1 : 0);
-                v.setUint8(off + 5, (e.p2 || e.player === 2) ? 1 : 0);
-            });
-            dlBlob(new Blob([buf]), f.name.replace('.json', '.re3'));
+            macro = evs.map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d, p2: e.p2 || e.player === 2 }));
         }
-        addLog("Конвертация завершена!");
+        
+        addLog(`Макрос: ${file.name}\nСобытий: ${macro.length}\nFPS: ${fps}`);
+        dZone.innerText = file.name;
+        dZone.classList.add('active');
+        checkReady();
     }
 
     async function render() {
-        addLog("Генерация звука...");
-        const v = vol.value/100, o = Math.floor((off.value/1000)*44100);
-        const len = Math.floor((macro[macro.length-1].f / fps) * 44100) + 88200;
+        addLog("Рендеринг...");
+        const v = 1.0, o = Math.floor((-0.140)*44100);
+        const last = macro[macro.length-1];
+        const len = Math.floor((last.f / fps) * 44100) + 88200;
         const L = new Float32Array(len), R = new Float32Array(len);
 
         macro.forEach(e => {
@@ -202,20 +142,20 @@
             if(s < 0) return;
             const pool = e.d ? audioCache.clicks : audioCache.releases;
             if(pool.length) {
-                const sample = pool[Math.floor(Math.random()*pool.length)];
+                const smp = pool[Math.floor(Math.random()*pool.length)];
                 const pL = e.p2 ? 0.4 : 1.0, pR = e.p2 ? 1.0 : 0.4;
-                for(let j=0; j<sample.length && (s+j)<len; j++) { 
-                    L[s+j]+=sample[j]*v*pL; R[s+j]+=sample[j]*v*pR; 
+                for(let j=0; j<smp.length && (s+j)<len; j++) { 
+                    L[s+j]+=smp[j]*v*pL; R[s+j]+=smp[j]*v*pR; 
                 }
             }
         });
 
-        const b = stereoWav(L, R);
-        aud.src = URL.createObjectURL(b);
+        const blob = stereoWav(L, R);
+        aud.src = URL.createObjectURL(blob);
         dl.href = aud.src;
-        dl.download = "zcb_render.wav";
+        dl.download = "result.wav";
         pArea.style.display = 'block';
-        addLog("Готово! Слушайте ниже.");
+        addLog("Готово!");
     }
 
     function stereoWav(l, r) {
@@ -235,21 +175,31 @@
         return new Blob([b], { type: 'audio/wav' });
     }
 
-    function dlBlob(b, n) { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = n; a.click(); }
-    function check() { if(audioCache.clicks.length && macro.length) rBtn.style.display = 'block'; }
+    function checkReady() { if(audioCache.clicks.length && macro.length) rBtn.style.display = 'block'; }
     
     async function loadMainPack(f, b) {
         document.querySelectorAll('.pack-btn').forEach(x => x.classList.remove('active')); b.classList.add('active');
-        addLog("Загрузка пака...");
-        const res = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
-        const files = await res.json();
-        audioCache = { clicks: [], releases: [] };
-        for (let file of files) {
-            const ad = await ctx.decodeAudioData(await (await fetch(file.download_url)).arrayBuffer());
-            if (file.name.toLowerCase().includes('click')) audioCache.clicks.push(ad.getChannelData(0));
-            else audioCache.releases.push(ad.getChannelData(0));
-        }
-        addLog("Пак загружен."); check();
+        addLog("Загрузка...");
+        try {
+            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/clicks/${f}`);
+            const files = await res.json();
+            audioCache = { clicks: [], releases: [] };
+            for (let file of files) {
+                const ad = await ctx.decodeAudioData(await (await fetch(file.download_url)).arrayBuffer());
+                const lowName = file.name.toLowerCase();
+                if (clickKeys.some(k => lowName.includes(k))) audioCache.clicks.push(ad.getChannelData(0));
+                else if (releaseKeys.some(k => lowName.includes(k))) audioCache.releases.push(ad.getChannelData(0));
+            }
+            addLog("Пак загружен."); checkReady();
+        } catch(e) { addLog("Ошибка."); }
+    }
+
+    async function loadZipPack(name) {
+        addLog(`Скачивание...`);
+        try {
+            const res = await fetch(`https://raw.githubusercontent.com/${REPO}/main/packs/${name}.zip`);
+            loadCustomZip(await res.blob());
+        } catch(e) { addLog("Ошибка."); }
     }
 
     async function init() {
@@ -257,7 +207,6 @@
             const r = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
             const f = await r.json();
             const s = document.getElementById('packSelect');
-            s.innerHTML = '<option disabled selected>ZIP из облака...</option>';
             f.filter(i => i.name.endsWith('.zip')).forEach(i => {
                 const n = i.name.replace('.zip', '');
                 const o = document.createElement('option'); o.value = n; o.innerText = n.toUpperCase();
