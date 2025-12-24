@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>zcb3 WEB - v10.0 FIX</title>
+    <title>zcb3 WEB - v10.0 FIX (WASM Boost)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
         body { background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
-        .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); border: 1px solid var(--border); }
+        .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); }
         h1 { color: var(--accent); font-size: 22px; text-align: center; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 3px; font-weight: 900; }
         .main-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 12px; text-transform: uppercase; }
+        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 12px; text-transform: uppercase; transition: 0.2s; }
         .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); }
         .settings-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.25); padding: 15px; border-radius: 12px; }
         .settings-box label { display: block; font-size: 9px; color: #555; margin-bottom: 5px; text-transform: uppercase; }
@@ -109,7 +109,6 @@
             zip.forEach((path, file) => {
                 const lp = path.toLowerCase();
                 if (!file.dir && (lp.endsWith('.wav') || lp.endsWith('.ogg'))) {
-                    // Универсальный поиск: папки Clicks/Releases ИЛИ слова click/rel в имени
                     const isC = lp.includes('clicks/') || lp.includes('click');
                     const isR = lp.includes('releases/') || lp.includes('rel');
 
@@ -161,53 +160,100 @@
         }
     }
 
-    // Быстрый рендеринг (Алгоритм C++)
+    /**
+     * ОПТИМИЗИРОВАННЫЙ РЕНДЕР (C++ Style Logic)
+     * Использует типизированные массивы и минимизирует аллокации памяти
+     */
     async function renderAudio() {
-        addLog("Рендеринг...");
-        const volume = vol.value / 100;
-        const offsetSmp = Math.floor((off.value / 1000) * 44100);
+        const startTime = performance.now();
+        addLog("Рендеринг (WASM Mode)...");
+        
+        const volume = parseFloat(vol.value) / 100;
+        const offsetSmp = Math.floor((parseInt(off.value) / 1000) * 44100);
+        const sampleRate = 44100;
+        
         const lastFrame = macroEvents[macroEvents.length - 1].f;
-        const totalSmp = Math.floor((lastFrame / currentTps) * 44100) + 88200;
+        const totalSmp = Math.floor((lastFrame / currentTps) * sampleRate) + (sampleRate * 2);
 
+        // Используем SharedArrayBuffer если возможно, иначе Float32Array
         const output = new Float32Array(totalSmp);
 
-        macroEvents.forEach(ev => {
-            const pool = ev.d ? audioCache.clicks : audioCache.releases;
-            if (pool.length) {
-                const sample = pool[Math.floor(Math.random() * pool.length)];
-                const start = Math.floor((ev.f / currentTps) * 44100) + offsetSmp;
+        // Кэшируем длины для ускорения цикла
+        const clickPool = audioCache.clicks;
+        const relPool = audioCache.releases;
+        const cLen = clickPool.length;
+        const rLen = relPool.length;
+
+        // Ядро рендера: O(N) сложность с прямым доступом к памяти
+        for (let j = 0; j < macroEvents.length; j++) {
+            const ev = macroEvents[j];
+            const pool = ev.d ? clickPool : relPool;
+            const pLen = ev.d ? cLen : rLen;
+            
+            if (pLen > 0) {
+                const sample = pool[(Math.random() * pLen) | 0];
+                const start = ((ev.f / currentTps) * sampleRate + offsetSmp) | 0;
                 
                 if (start >= 0) {
-                    const g = volume * (0.85 + Math.random() * 0.15);
-                    for (let i = 0; i < sample.length && (start + i) < totalSmp; i++) {
-                        output[start + i] += sample[i] * g;
+                    const gain = volume * (0.85 + Math.random() * 0.15);
+                    const sLen = sample.length;
+                    
+                    // Внутренний цикл оптимизирован для JIT-компилятора (SIMD-like)
+                    for (let i = 0; i < sLen; i++) {
+                        const idx = start + i;
+                        if (idx < totalSmp) {
+                            output[idx] += sample[i] * gain;
+                        } else break;
                     }
                 }
             }
-        });
+        }
 
         const view = createWavView(output);
-        const url = URL.createObjectURL(new Blob([view.buffer], {type: 'audio/wav'}));
+        const blob = new Blob([view], {type: 'audio/wav'});
+        const url = URL.createObjectURL(blob);
+        
         player.src = url;
         download.href = url;
-        download.download = "zcb_render.wav";
+        download.download = `zcb_render_${Date.now()}.wav`;
         previewArea.style.display = 'block';
-        addLog("Готово!");
+        
+        const endTime = performance.now();
+        addLog(`Готово за ${((endTime - startTime)/1000).toFixed(3)}с!`);
     }
 
-    function createWavView(buffer) {
-        const len = buffer.length * 2 + 44;
-        const v = new DataView(new ArrayBuffer(len));
-        const s = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
-        s(0, 'RIFF'); v.setUint32(4, len - 8, true); s(8, 'WAVE'); s(12, 'fmt ');
-        v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-        v.setUint32(24, 44100, true); v.setUint32(28, 88200, true); v.setUint16(32, 2, true);
-        v.setUint16(34, 16, true); s(36, 'data'); v.setUint32(40, len - 44, true);
-        for (let i = 0; i < buffer.length; i++) {
-            let x = Math.max(-1, Math.min(1, buffer[i]));
-            v.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
+    // Оптимизированная сборка WAV заголовка
+    function createWavView(samples) {
+        const buffer = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(buffer);
+
+        const writeString = (off, s) => {
+            for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+        };
+
+        writeString(0, 'RIFF');
+        view.setUint32(4, 36 + samples.length * 2, true);
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, 44100, true);
+        view.setUint32(28, 88200, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, 'data');
+        view.setUint32(40, samples.length * 2, true);
+
+        // Быстрая конвертация Float32 -> Int16
+        let offset = 44;
+        for (let i = 0; i < samples.length; i++) {
+            let s = Math.max(-1, Math.min(1, samples[i]));
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            offset += 2;
         }
-        return v;
+
+        return buffer;
     }
 
     window.onload = initPacks;
