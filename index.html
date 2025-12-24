@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>zcb3 WEB - v10.0 STABLE</title>
+    <title>zcb3 WEB - v10.0 FIX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
-        .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); }
-        h1 { color: var(--accent); font-size: 24px; text-align: center; text-transform: uppercase; margin: 0 0 25px 0; letter-spacing: 4px; font-weight: 900; }
-        .main-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 13px; text-transform: uppercase; transition: 0.2s; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); border: 1px solid var(--border); }
+        h1 { color: var(--accent); font-size: 22px; text-align: center; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 3px; font-weight: 900; }
+        .main-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 12px; text-transform: uppercase; }
         .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); }
-        .settings-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid #1a1a1f; }
-        .settings-box label { display: block; font-size: 9px; color: #555; margin-bottom: 5px; text-transform: uppercase; font-weight: 800; }
+        .settings-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.25); padding: 15px; border-radius: 12px; }
+        .settings-box label { display: block; font-size: 9px; color: #555; margin-bottom: 5px; text-transform: uppercase; }
         .settings-box input { width: 100%; accent-color: var(--accent); }
-        label { display: block; font-size: 10px; color: #555; margin-bottom: 8px; text-transform: uppercase; font-weight: 800; letter-spacing: 1.5px; }
+        label { display: block; font-size: 10px; color: #555; margin-bottom: 8px; text-transform: uppercase; font-weight: 800; }
         select { width: 100%; background: #000; color: #aaa; border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin-bottom: 20px; outline: none; }
-        .drop-zone { border: 2px dashed #222; padding: 35px; text-align: center; border-radius: 16px; cursor: pointer; color: #666; margin-bottom: 25px; }
+        .drop-zone { border: 2px dashed #222; padding: 30px; text-align: center; border-radius: 16px; cursor: pointer; color: #666; margin-bottom: 20px; font-weight: bold; }
         .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); }
-        .status-box { padding: 12px; background: #08080a; border-radius: 10px; font-family: monospace; font-size: 10px; height: 60px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 25px; }
-        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; display: none; font-size: 16px; }
-        .preview { margin-top: 30px; display: none; border-top: 1px solid #222; padding-top: 25px; }
+        .status-box { padding: 12px; background: #08080a; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
+        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 18px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; display: none; text-transform: uppercase; letter-spacing: 1px; }
+        .preview { margin-top: 20px; display: none; border-top: 1px solid #222; padding-top: 20px; }
         audio { width: 100%; filter: invert(1); margin-bottom: 15px; }
-        .dl-link { display: block; text-align: center; color: var(--accent); text-decoration: none; font-size: 12px; font-weight: bold; border: 1px solid rgba(0,255,127,0.3); padding: 12px; border-radius: 8px; }
+        .dl-link { display: block; text-align: center; color: var(--accent); text-decoration: none; font-size: 12px; font-weight: bold; border: 1px solid var(--accent); padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -54,11 +54,10 @@
         <option>Загрузка списка...</option>
     </select>
 
-    <label>Макрос:</label>
-    <div class="drop-zone" onclick="document.getElementById('macroInput').click()" id="dropZone">Выберите .json или .re3</div>
+    <div class="drop-zone" onclick="document.getElementById('macroInput').click()" id="dropZone">ВЫБЕРИТЕ .JSON ИЛИ .RE3</div>
     <input type="file" id="macroInput" style="display: none;" onchange="handleMacro(this.files[0])">
 
-    <div class="status-box" id="log">Готов</div>
+    <div class="status-box" id="log">Ожидание выбора пака...</div>
 
     <button id="renderBtn" class="btn-go" onclick="renderAudio()">Собрать аудио</button>
 
@@ -80,13 +79,14 @@
             const res = await fetch(`https://api.github.com/repos/${REPO}/contents/packs`);
             const files = await res.json();
             const sel = document.getElementById('packSelect');
-            sel.innerHTML = '<option value="" disabled selected>Выберите пак...</option>';
+            sel.innerHTML = '<option value="" disabled selected>Выберите доп. пак...</option>';
             files.filter(f => f.name.endsWith('.zip')).forEach(f => {
                 const id = f.name.replace('.zip', '');
                 const opt = document.createElement('option');
                 opt.value = id; opt.innerText = id.replace(/-/g, ' ').toUpperCase();
                 sel.appendChild(opt);
             });
+            addLog("Список паков обновлен");
         } catch (e) { addLog("Ошибка GitHub"); }
     }
 
@@ -97,36 +97,36 @@
     }
 
     async function loadZip(id) {
-        addLog(`Загрузка ${id}...`);
+        addLog(`Загрузка пака: ${id}...`);
         audioCache = { clicks: [], releases: [] };
+        renderBtn.style.display = 'none';
+        
         try {
             const res = await fetch(`https://raw.githubusercontent.com/${REPO}/main/packs/${id}.zip`);
             const zip = await JSZip.loadAsync(await res.blob());
-            const promises = [];
+            const p = [];
 
             zip.forEach((path, file) => {
                 const lp = path.toLowerCase();
                 if (!file.dir && (lp.endsWith('.wav') || lp.endsWith('.ogg'))) {
-                    // Улучшенная логика поиска: по папкам ИЛИ по именам файлов
-                    const isC = lp.includes('click') || lp.includes('clicks/');
-                    const isR = lp.includes('rel') || lp.includes('releases/');
+                    // Универсальный поиск: папки Clicks/Releases ИЛИ слова click/rel в имени
+                    const isC = lp.includes('clicks/') || lp.includes('click');
+                    const isR = lp.includes('releases/') || lp.includes('rel');
 
                     if (isC || isR) {
-                        promises.push(file.async("arraybuffer").then(async data => {
-                            try {
-                                const buffer = await ctx.decodeAudioData(data);
-                                if (isC) audioCache.clicks.push(buffer.getChannelData(0));
-                                else audioCache.releases.push(buffer.getChannelData(0));
-                            } catch (e) { console.warn("Ошибка декодирования:", path); }
+                        p.push(file.async("arraybuffer").then(async d => {
+                            const b = await ctx.decodeAudioData(d);
+                            if (isC) audioCache.clicks.push(b.getChannelData(0)); 
+                            else audioCache.releases.push(b.getChannelData(0));
                         }));
                     }
                 }
             });
 
-            await Promise.all(promises);
-            addLog(`Загружено: C:${audioCache.clicks.length} R:${audioCache.releases.length}`);
-            if (macroEvents.length > 0 && audioCache.clicks.length > 0) renderBtn.style.display = 'block';
-        } catch (e) { addLog("Ошибка загрузки ZIP"); }
+            await Promise.all(p);
+            addLog(`Готово! Кликов: ${audioCache.clicks.length}, Релизов: ${audioCache.releases.length}`);
+            checkReady();
+        } catch (e) { addLog("Ошибка при чтении ZIP!"); }
     }
 
     async function handleMacro(f) {
@@ -136,9 +136,8 @@
             if(f.name.endsWith('.re3')) {
                 const v = new DataView(buf); 
                 currentTps = v.getFloat32(0, true);
-                let p1_phys = v.getUint32(4, true), p2_phys = v.getUint32(8, true);
-                let p1_in = v.getUint32(12, true);
-                let offset = 20 + (p1_phys + p2_phys) * 32; // Пропуск физики
+                let p1_phys = v.getUint32(4, true), p2_phys = v.getUint32(8, true), p1_in = v.getUint32(12, true);
+                let offset = 20 + (p1_phys + p2_phys) * 32;
                 macroEvents = [];
                 for(let i=0; i<p1_in; i++) {
                     macroEvents.push({ f: v.getUint32(offset, true), d: v.getUint8(offset+4) !== 0 });
@@ -151,63 +150,64 @@
             }
             dropZone.innerText = "✅ " + f.name;
             dropZone.classList.add('active');
-            if(audioCache.clicks.length > 0) renderBtn.style.display = 'block';
-        } catch (e) { addLog("Ошибка макроса"); }
+            addLog(`Макрос загружен (${macroEvents.length} событий)`);
+            checkReady();
+        } catch (e) { addLog("Ошибка макроса!"); }
     }
 
-    // Супер быстрый рендер (аналог C++ recorder.cpp)
-    async function renderAudio() {
-        if (!macroEvents.length || !audioCache.clicks.length) return;
-        addLog("Рендеринг...");
-        
-        const volume = vol.value / 100;
-        const offsetSamples = Math.floor((off.value / 1000) * 44100);
-        const lastFrame = macroEvents[macroEvents.length - 1].f;
-        const totalSamples = Math.floor((lastFrame / currentTps) * 44100) + 88200;
+    function checkReady() {
+        if (audioCache.clicks.length > 0 && macroEvents.length > 0) {
+            renderBtn.style.display = 'block';
+        }
+    }
 
-        const output = new Float32Array(totalSamples);
+    // Быстрый рендеринг (Алгоритм C++)
+    async function renderAudio() {
+        addLog("Рендеринг...");
+        const volume = vol.value / 100;
+        const offsetSmp = Math.floor((off.value / 1000) * 44100);
+        const lastFrame = macroEvents[macroEvents.length - 1].f;
+        const totalSmp = Math.floor((lastFrame / currentTps) * 44100) + 88200;
+
+        const output = new Float32Array(totalSmp);
 
         macroEvents.forEach(ev => {
             const pool = ev.d ? audioCache.clicks : audioCache.releases;
             if (pool.length) {
                 const sample = pool[Math.floor(Math.random() * pool.length)];
-                const startPos = Math.floor((ev.f / currentTps) * 44100) + offsetSamples;
+                const start = Math.floor((ev.f / currentTps) * 44100) + offsetSmp;
                 
-                if (startPos >= 0) {
-                    const gain = volume * (0.9 + Math.random() * 0.1);
-                    for (let i = 0; i < sample.length; i++) {
-                        if (startPos + i < totalSamples) {
-                            output[startPos + i] += sample[i] * gain;
-                        }
+                if (start >= 0) {
+                    const g = volume * (0.85 + Math.random() * 0.15);
+                    for (let i = 0; i < sample.length && (start + i) < totalSmp; i++) {
+                        output[start + i] += sample[i] * g;
                     }
                 }
             }
         });
 
-        const blob = bufferToWav(output);
-        const url = URL.createObjectURL(blob);
+        const view = createWavView(output);
+        const url = URL.createObjectURL(new Blob([view.buffer], {type: 'audio/wav'}));
         player.src = url;
         download.href = url;
-        download.download = "result.wav";
+        download.download = "zcb_render.wav";
         previewArea.style.display = 'block';
         addLog("Готово!");
     }
 
-    function bufferToWav(buffer) {
-        const length = buffer.length * 2 + 44;
-        const view = new DataView(new ArrayBuffer(length));
-        const s = (o, t) => { for (let i = 0; i < t.length; i++) view.setUint8(o + i, t.charCodeAt(i)); };
-        
-        s(0, 'RIFF'); view.setUint32(4, length - 8, true); s(8, 'WAVE'); s(12, 'fmt ');
-        view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-        view.setUint32(24, 44100, true); view.setUint32(28, 88200, true); view.setUint16(32, 2, true);
-        view.setUint16(34, 16, true); s(36, 'data'); view.setUint32(40, length - 44, true);
-
+    function createWavView(buffer) {
+        const len = buffer.length * 2 + 44;
+        const v = new DataView(new ArrayBuffer(len));
+        const s = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+        s(0, 'RIFF'); v.setUint32(4, len - 8, true); s(8, 'WAVE'); s(12, 'fmt ');
+        v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+        v.setUint32(24, 44100, true); v.setUint32(28, 88200, true); v.setUint16(32, 2, true);
+        v.setUint16(34, 16, true); s(36, 'data'); v.setUint32(40, len - 44, true);
         for (let i = 0; i < buffer.length; i++) {
             let x = Math.max(-1, Math.min(1, buffer[i]));
-            view.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
+            v.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
         }
-        return new Blob([view.buffer], {type: 'audio/wav'});
+        return v;
     }
 
     window.onload = initPacks;
