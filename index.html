@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>zcb3 WEB - v10.0 FIX (WASM Boost)</title>
+    <title>zcb3 WEB - v10.0 FIX (Full RE3 Support)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
@@ -110,7 +110,7 @@
                 const lp = path.toLowerCase();
                 if (!file.dir && (lp.endsWith('.wav') || lp.endsWith('.ogg'))) {
                     const isC = lp.includes('clicks/') || lp.includes('click');
-                    const isR = lp.includes('releases/') || lp.includes('rel');
+                    const isR = lp.includes('releases/') || lp.includes('rel') || lp.includes('release');
 
                     if (isC || isR) {
                         p.push(file.async("arraybuffer").then(async d => {
@@ -135,12 +135,24 @@
             if(f.name.endsWith('.re3')) {
                 const v = new DataView(buf); 
                 currentTps = v.getFloat32(0, true);
-                let p1_phys = v.getUint32(4, true), p2_phys = v.getUint32(8, true), p1_in = v.getUint32(12, true);
+                
+                // Исправленный парсер RE3:
+                // В RE3 структура: TPS(4) + PhysCount1(4) + PhysCount2(4) + InputCount(4) + ...
+                let p1_phys = v.getUint32(4, true);
+                let p2_phys = v.getUint32(8, true);
+                let input_count = v.getUint32(12, true);
+                
+                // Смещение: заголовок (20 байт) + данные физики (физика занимает по 32 байта на кадр)
                 let offset = 20 + (p1_phys + p2_phys) * 32;
+                
                 macroEvents = [];
-                for(let i=0; i<p1_in; i++) {
-                    macroEvents.push({ f: v.getUint32(offset, true), d: v.getUint8(offset+4) !== 0 });
-                    offset += 16;
+                // Проверка на корректность размера файла, чтобы не выйти за пределы
+                for(let i = 0; i < input_count && (offset + 16) <= buf.byteLength; i++) {
+                    macroEvents.push({ 
+                        f: v.getUint32(offset, true), 
+                        d: v.getUint8(offset + 4) !== 0 
+                    });
+                    offset += 16; // Каждое событие ввода в RE3 занимает 16 байт
                 }
             } else {
                 const d = JSON.parse(new TextDecoder().decode(buf));
@@ -149,9 +161,9 @@
             }
             dropZone.innerText = "✅ " + f.name;
             dropZone.classList.add('active');
-            addLog(`Макрос загружен (${macroEvents.length} событий)`);
+            addLog(`Макрос: ${macroEvents.length} событий`);
             checkReady();
-        } catch (e) { addLog("Ошибка макроса!"); }
+        } catch (e) { addLog("Ошибка макроса!"); console.error(e); }
     }
 
     function checkReady() {
@@ -160,13 +172,10 @@
         }
     }
 
-    /**
-     * ОПТИМИЗИРОВАННЫЙ РЕНДЕР (C++ Style Logic)
-     * Использует типизированные массивы и минимизирует аллокации памяти
-     */
     async function renderAudio() {
+        if (!macroEvents.length) return;
         const startTime = performance.now();
-        addLog("Рендеринг (WASM Mode)...");
+        addLog("Рендеринг...");
         
         const volume = parseFloat(vol.value) / 100;
         const offsetSmp = Math.floor((parseInt(off.value) / 1000) * 44100);
@@ -175,31 +184,19 @@
         const lastFrame = macroEvents[macroEvents.length - 1].f;
         const totalSmp = Math.floor((lastFrame / currentTps) * sampleRate) + (sampleRate * 2);
 
-        // Используем SharedArrayBuffer если возможно, иначе Float32Array
         const output = new Float32Array(totalSmp);
 
-        // Кэшируем длины для ускорения цикла
-        const clickPool = audioCache.clicks;
-        const relPool = audioCache.releases;
-        const cLen = clickPool.length;
-        const rLen = relPool.length;
-
-        // Ядро рендера: O(N) сложность с прямым доступом к памяти
         for (let j = 0; j < macroEvents.length; j++) {
             const ev = macroEvents[j];
-            const pool = ev.d ? clickPool : relPool;
-            const pLen = ev.d ? cLen : rLen;
+            const pool = ev.d ? audioCache.clicks : audioCache.releases;
             
-            if (pLen > 0) {
-                const sample = pool[(Math.random() * pLen) | 0];
+            if (pool.length > 0) {
+                const sample = pool[(Math.random() * pool.length) | 0];
                 const start = ((ev.f / currentTps) * sampleRate + offsetSmp) | 0;
                 
                 if (start >= 0) {
                     const gain = volume * (0.85 + Math.random() * 0.15);
-                    const sLen = sample.length;
-                    
-                    // Внутренний цикл оптимизирован для JIT-компилятора (SIMD-like)
-                    for (let i = 0; i < sLen; i++) {
+                    for (let i = 0; i < sample.length; i++) {
                         const idx = start + i;
                         if (idx < totalSmp) {
                             output[idx] += sample[i] * gain;
@@ -209,27 +206,20 @@
             }
         }
 
-        const view = createWavView(output);
-        const blob = new Blob([view], {type: 'audio/wav'});
-        const url = URL.createObjectURL(blob);
+        const wavBuffer = createWavView(output);
+        const url = URL.createObjectURL(new Blob([wavBuffer], {type: 'audio/wav'}));
         
         player.src = url;
         download.href = url;
-        download.download = `zcb_render_${Date.now()}.wav`;
+        download.download = `render_${Date.now()}.wav`;
         previewArea.style.display = 'block';
-        
-        const endTime = performance.now();
-        addLog(`Готово за ${((endTime - startTime)/1000).toFixed(3)}с!`);
+        addLog(`Готово за ${((performance.now() - startTime)/1000).toFixed(2)}с`);
     }
 
-    // Оптимизированная сборка WAV заголовка
     function createWavView(samples) {
         const buffer = new ArrayBuffer(44 + samples.length * 2);
         const view = new DataView(buffer);
-
-        const writeString = (off, s) => {
-            for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
-        };
+        const writeString = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
 
         writeString(0, 'RIFF');
         view.setUint32(4, 36 + samples.length * 2, true);
@@ -245,14 +235,10 @@
         writeString(36, 'data');
         view.setUint32(40, samples.length * 2, true);
 
-        // Быстрая конвертация Float32 -> Int16
-        let offset = 44;
         for (let i = 0; i < samples.length; i++) {
             let s = Math.max(-1, Math.min(1, samples[i]));
-            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-            offset += 2;
+            view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
         }
-
         return buffer;
     }
 
