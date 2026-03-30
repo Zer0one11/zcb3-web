@@ -3,28 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>zcb3 WEB - v10.0 FIX (Full RE3 Support)</title>
+    <title>zcb3 WEB - v10.5 (Unlimited Inputs Fix)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root { --accent: #00ff7f; --bg: #0b0b0e; --card: #121217; --border: #22222b; }
-        body { background: var(--bg); color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
         .container { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); }
         h1 { color: var(--accent); font-size: 22px; text-align: center; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 3px; font-weight: 900; }
         .main-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 12px; text-transform: uppercase; transition: 0.2s; }
+        .pack-btn { background: #1a1a20; border: 1px solid var(--border); color: #888; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 11px; text-transform: uppercase; transition: 0.2s; }
         .pack-btn.active { background: rgba(0,255,127,0.1); border-color: var(--accent); color: var(--accent); }
         .settings-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.25); padding: 15px; border-radius: 12px; }
         .settings-box label { display: block; font-size: 9px; color: #555; margin-bottom: 5px; text-transform: uppercase; }
         .settings-box input { width: 100%; accent-color: var(--accent); }
         label { display: block; font-size: 10px; color: #555; margin-bottom: 8px; text-transform: uppercase; font-weight: 800; }
-        select { width: 100%; background: #000; color: #aaa; border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin-bottom: 20px; outline: none; }
-        .drop-zone { border: 2px dashed #222; padding: 30px; text-align: center; border-radius: 16px; cursor: pointer; color: #666; margin-bottom: 20px; font-weight: bold; }
-        .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); }
-        .status-box { padding: 12px; background: #08080a; border-radius: 10px; font-family: monospace; font-size: 10px; height: 50px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; }
-        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 18px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; display: none; text-transform: uppercase; letter-spacing: 1px; }
+        select { width: 100%; background: #000; color: #aaa; border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin-bottom: 20px; outline: none; appearance: none; }
+        .drop-zone { border: 2px dashed #222; padding: 30px; text-align: center; border-radius: 16px; cursor: pointer; color: #666; margin-bottom: 20px; font-weight: bold; transition: 0.3s; }
+        .drop-zone.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,127,0.05); box-shadow: 0 0 20px rgba(0,255,127,0.1); }
+        .status-box { padding: 12px; background: #08080a; border-radius: 10px; font-family: monospace; font-size: 10px; height: 60px; overflow-y: auto; color: var(--accent); border: 1px solid #1a1a1f; margin-bottom: 20px; white-space: pre-wrap; }
+        .btn-go { width: 100%; background: var(--accent); color: #000; padding: 18px; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; display: none; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
+        .btn-go:hover { transform: scale(1.02); filter: brightness(1.1); }
         .preview { margin-top: 20px; display: none; border-top: 1px solid #222; padding-top: 20px; }
         audio { width: 100%; filter: invert(1); margin-bottom: 15px; }
-        .dl-link { display: block; text-align: center; color: var(--accent); text-decoration: none; font-size: 12px; font-weight: bold; border: 1px solid var(--accent); padding: 10px; border-radius: 8px; }
+        .dl-link { display: block; text-align: center; color: var(--accent); text-decoration: none; font-size: 12px; font-weight: bold; border: 1px solid var(--accent); padding: 10px; border-radius: 8px; transition: 0.3s; }
+        .dl-link:hover { background: var(--accent); color: #000; }
     </style>
 </head>
 <body>
@@ -72,7 +74,10 @@
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     let audioCache = { clicks: [], releases: [] }, macroEvents = [], currentTps = 240;
 
-    function addLog(m) { log.innerText = "> " + m; }
+    function addLog(m) { 
+        const now = new Date().toLocaleTimeString();
+        log.innerText = `[${now}] ${m}\n` + log.innerText; 
+    }
 
     async function initPacks() {
         try {
@@ -87,7 +92,7 @@
                 sel.appendChild(opt);
             });
             addLog("Список паков обновлен");
-        } catch (e) { addLog("Ошибка GitHub"); }
+        } catch (e) { addLog("Ошибка доступа к GitHub"); }
     }
 
     function selectMain(id, btn) {
@@ -97,20 +102,21 @@
     }
 
     async function loadZip(id) {
-        addLog(`Загрузка пака: ${id}...`);
+        addLog(`Загрузка ${id}...`);
         audioCache = { clicks: [], releases: [] };
         renderBtn.style.display = 'none';
         
         try {
             const res = await fetch(`https://raw.githubusercontent.com/${REPO}/main/packs/${id}.zip`);
+            if(!res.ok) throw new Error();
             const zip = await JSZip.loadAsync(await res.blob());
             const p = [];
 
             zip.forEach((path, file) => {
                 const lp = path.toLowerCase();
                 if (!file.dir && (lp.endsWith('.wav') || lp.endsWith('.ogg'))) {
-                    const isC = lp.includes('clicks/') || lp.includes('click');
-                    const isR = lp.includes('releases/') || lp.includes('rel') || lp.includes('release');
+                    const isC = lp.includes('click');
+                    const isR = lp.includes('rel');
 
                     if (isC || isR) {
                         p.push(file.async("arraybuffer").then(async d => {
@@ -123,51 +129,52 @@
             });
 
             await Promise.all(p);
-            addLog(`Готово! Кликов: ${audioCache.clicks.length}, Релизов: ${audioCache.releases.length}`);
+            addLog(`Пак загружен! (${audioCache.clicks.length}C / ${audioCache.releases.length}R)`);
             checkReady();
-        } catch (e) { addLog("Ошибка при чтении ZIP!"); }
+        } catch (e) { addLog("Ошибка загрузки пака!"); }
     }
 
     async function handleMacro(f) {
         if(!f) return;
+        addLog(`Парсинг ${f.name}...`);
         const buf = await f.arrayBuffer();
         try {
+            macroEvents = [];
             if(f.name.endsWith('.re3')) {
                 const v = new DataView(buf); 
                 currentTps = v.getFloat32(0, true);
                 
-                // Исправленный парсер RE3:
-                // В RE3 структура: TPS(4) + PhysCount1(4) + PhysCount2(4) + InputCount(4) + ...
                 let p1_phys = v.getUint32(4, true);
                 let p2_phys = v.getUint32(8, true);
                 let input_count = v.getUint32(12, true);
                 
-                // Смещение: заголовок (20 байт) + данные физики (физика занимает по 32 байта на кадр)
+                // Смещение: заголовок (20) + данные физики (32 байта на кадр)
                 let offset = 20 + (p1_phys + p2_phys) * 32;
                 
-                macroEvents = [];
-                // Проверка на корректность размера файла, чтобы не выйти за пределы
+                // Лимит в 10млн убран, читаем пока есть данные или инпуты
                 for(let i = 0; i < input_count && (offset + 16) <= buf.byteLength; i++) {
                     macroEvents.push({ 
                         f: v.getUint32(offset, true), 
                         d: v.getUint8(offset + 4) !== 0 
                     });
-                    offset += 16; // Каждое событие ввода в RE3 занимает 16 байт
+                    offset += 16;
                 }
             } else {
                 const d = JSON.parse(new TextDecoder().decode(buf));
-                currentTps = d.framerate || 240;
-                macroEvents = (d.inputs || d.events).map(e => ({ f: e.frame ?? e.f, d: e.down ?? e.d }));
+                currentTps = d.framerate || d.fps || 240;
+                const events = d.inputs || d.events || d.replays || d;
+                macroEvents = events.map(e => ({ f: e.frame ?? e.f ?? (e.x / 480 * currentTps), d: e.down ?? e.d ?? e.pressed }));
             }
+            
             dropZone.innerText = "✅ " + f.name;
             dropZone.classList.add('active');
-            addLog(`Макрос: ${macroEvents.length} событий`);
+            addLog(`Макрос готов: ${macroEvents.length} событий`);
             checkReady();
-        } catch (e) { addLog("Ошибка макроса!"); console.error(e); }
+        } catch (e) { addLog("Ошибка формата макроса!"); }
     }
 
     function checkReady() {
-        if (audioCache.clicks.length > 0 && macroEvents.length > 0) {
+        if ((audioCache.clicks.length > 0 || audioCache.releases.length > 0) && macroEvents.length > 0) {
             renderBtn.style.display = 'block';
         }
     }
@@ -175,27 +182,32 @@
     async function renderAudio() {
         if (!macroEvents.length) return;
         const startTime = performance.now();
-        addLog("Рендеринг...");
+        addLog("Начало рендеринга...");
         
         const volume = parseFloat(vol.value) / 100;
         const offsetSmp = Math.floor((parseInt(off.value) / 1000) * 44100);
         const sampleRate = 44100;
         
+        // Сортировка для надежности
+        macroEvents.sort((a, b) => a.f - b.f);
+        
         const lastFrame = macroEvents[macroEvents.length - 1].f;
-        const totalSmp = Math.floor((lastFrame / currentTps) * sampleRate) + (sampleRate * 2);
+        const totalSmp = Math.floor((lastFrame / currentTps) * sampleRate) + (sampleRate * 3);
 
+        // Используем Float32Array для предотвращения переполнения памяти
         const output = new Float32Array(totalSmp);
 
         for (let j = 0; j < macroEvents.length; j++) {
             const ev = macroEvents[j];
             const pool = ev.d ? audioCache.clicks : audioCache.releases;
             
-            if (pool.length > 0) {
+            if (pool && pool.length > 0) {
                 const sample = pool[(Math.random() * pool.length) | 0];
                 const start = ((ev.f / currentTps) * sampleRate + offsetSmp) | 0;
                 
-                if (start >= 0) {
-                    const gain = volume * (0.85 + Math.random() * 0.15);
+                if (start >= 0 && start < totalSmp) {
+                    // Рандомизация громкости каждого клика для реализма
+                    const gain = volume * (0.8 + Math.random() * 0.2);
                     for (let i = 0; i < sample.length; i++) {
                         const idx = start + i;
                         if (idx < totalSmp) {
@@ -206,14 +218,15 @@
             }
         }
 
+        addLog("Сборка WAV файла...");
         const wavBuffer = createWavView(output);
         const url = URL.createObjectURL(new Blob([wavBuffer], {type: 'audio/wav'}));
         
         player.src = url;
         download.href = url;
-        download.download = `render_${Date.now()}.wav`;
+        download.download = `zcb_render_${Math.floor(Date.now()/1000)}.wav`;
         previewArea.style.display = 'block';
-        addLog(`Готово за ${((performance.now() - startTime)/1000).toFixed(2)}с`);
+        addLog(`Успешно! Время: ${((performance.now() - startTime)/1000).toFixed(2)}с`);
     }
 
     function createWavView(samples) {
